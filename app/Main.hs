@@ -5,8 +5,6 @@ import Data.Maybe (catMaybes)
 import System.Exit (exitFailure)
 import Types
 
-chooseMeeting :: [Person] -> Meeting
-chooseMeeting = undefined
 
 main :: IO ()
 main = do
