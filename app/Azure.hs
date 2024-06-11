@@ -1,6 +1,13 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
 
-module Azure (getPerson, getToken, printAuthenticatedUserName) where
+module Azure
+  ( getPerson,
+    getToken,
+    printAuthenticatedUserName,
+    printFreeBusySchedule,
+  )
+where
 
 import Control.Concurrent (threadDelay)
 import Control.Monad (void)
@@ -10,9 +17,14 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as T
+import Data.Time.Clock
+import Data.Time.Format.ISO8601
+import Data.Time.LocalTime
+import GHC.Generics
 import Network.HTTP.Req
+import System.Environment (setEnv)
 import System.Process (spawnCommand)
-import Types
+import Types (Person)
 
 newtype Token = Token {_unToken :: Text}
 
@@ -117,6 +129,51 @@ printAuthenticatedUserName token = do
   let profile_url = https "graph.microsoft.com" /: "v1.0" /: "me"
   resp <- runReq defaultHttpConfig $ do
     req GET profile_url NoReqBody jsonResponse (withToken token)
+  print (responseBody resp :: Value)
+
+data DateTimeTimeZone = DateTimeTimeZone
+  { dateTime :: Text,
+    timeZone :: Text
+  }
+  deriving (Eq, Show, Generic)
+
+instance ToJSON DateTimeTimeZone
+
+dttzFromUTCTime :: UTCTime -> IO DateTimeTimeZone
+dttzFromUTCTime t = do
+  now <- getCurrentTime
+  setEnv "TZ" "Europe/London"
+  tz <- getTimeZone now
+  pure $
+    DateTimeTimeZone
+      { dateTime = T.pack $ iso8601Show (utcToLocalTime tz t),
+        timeZone = "Europe/London"
+      }
+
+data SchedulePostBody = SchedulePostBody
+  { schedules :: [Text],
+    startTime :: DateTimeTimeZone,
+    endTime :: DateTimeTimeZone,
+    availabilityViewInterval :: Maybe Int -- Minutes
+  }
+  deriving (Eq, Show, Generic)
+
+instance ToJSON SchedulePostBody
+
+printFreeBusySchedule :: Token -> [String] -> UTCTime -> UTCTime -> IO ()
+printFreeBusySchedule token emails start end = do
+  start' <- dttzFromUTCTime start
+  end' <- dttzFromUTCTime end
+  resp <- runReq defaultHttpConfig $ do
+    let calendarUrl = https "graph.microsoft.com" /: "v1.0" /: "me" /: "calendar" /: "getSchedule"
+    let postBody =
+          SchedulePostBody
+            { schedules = map T.pack emails,
+              startTime = start',
+              endTime = end',
+              availabilityViewInterval = Just 30
+            }
+    req POST calendarUrl (ReqBodyJson postBody) jsonResponse (withToken token)
   print (responseBody resp :: Value)
 
 getPerson :: Token -> String -> IO (Maybe Person)
