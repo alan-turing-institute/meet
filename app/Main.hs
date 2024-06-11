@@ -1,7 +1,7 @@
 module Main where
 
+import Args
 import Azure
--- import Data.Maybe (catMaybes)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time.Clock (addUTCTime, getCurrentTime, secondsToNominalDiffTime)
@@ -28,6 +28,9 @@ getEmails = do
 
 main :: IO ()
 main = do
+  args <- getArgs
+  putStrLn $ "arguments received: " ++ show args
+
   eitherToken <- getToken
   case eitherToken of
     Left err -> print err >> exitFailure
