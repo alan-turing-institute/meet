@@ -5,6 +5,7 @@ import Azure
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time.Clock (addUTCTime, getCurrentTime, secondsToNominalDiffTime)
+import Meetings (findRelativeMeetings)
 import System.Exit (exitFailure)
 import System.IO (hFlush, isEOF, stdout)
 import Types (toPerson)
@@ -36,10 +37,5 @@ main = do
       let twoWeeksLater = addUTCTime (secondsToNominalDiffTime 3600 * 24 * 14) now
       strings <- getAvailabilityString token emailAddrs now twoWeeksLater
       let people = map toPerson strings
-      print people
-
--- let emails = ["me@turing.ac.uk", "you@turing.ac.uk", "etc@turing.ac.uk"]
--- maybePeople <- mapM getPerson emails
--- let actualPeople = catMaybes maybePeople
--- let meeting = chooseMeeting actualPeople
--- print meeting
+      let relativeMeetings = findRelativeMeetings people 2
+      print relativeMeetings
