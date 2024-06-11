@@ -1,4 +1,6 @@
-module Azure (getPerson, getToken) where
+{-# LANGUAGE DataKinds #-}
+
+module Azure (getPerson, getToken, printAuthenticatedUserName) where
 
 import Control.Concurrent (threadDelay)
 import Control.Monad (void)
@@ -6,18 +8,19 @@ import Data.Aeson
 import Data.Aeson.Types
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as T
 import Network.HTTP.Req
 import System.Process (spawnCommand)
 import Types
 
-getPerson :: String -> IO (Maybe Person)
-getPerson = undefined
-
 newtype Token = Token {_unToken :: Text}
 
 instance Show Token where
   show t = T.unpack $ "Token: " <> T.take 10 (_unToken t) <> "..."
+
+withToken :: Token -> Option 'Https
+withToken token = oAuth2Bearer (TE.encodeUtf8 $ _unToken token)
 
 rumClientId :: Text
 rumClientId = "a462354f-fd23-4fdf-94f5-5cce5a6c27c7"
@@ -80,8 +83,8 @@ data DeviceCodeResponse = DeviceCodeResponse
   }
   deriving (Eq, Show)
 
-parseDeviceCodeResponse :: Value -> Parser DeviceCodeResponse
-parseDeviceCodeResponse = withObject "parseDeviceCodeResponse" $ \o -> do
+parseDeviceCodeResponse :: Value -> Either String DeviceCodeResponse
+parseDeviceCodeResponse = parseEither . withObject "parseDeviceCodeResponse" $ \o -> do
   DeviceCodeResponse
     <$> o .: "device_code"
     <*> o .: "user_code"
@@ -96,10 +99,10 @@ getToken = do
     let url = https "login.microsoftonline.com" /: rumTenantId /: "oauth2" /: "v2.0" /: "devicecode"
     req POST url (ReqBodyUrlEnc ("client_id" =: rumClientId <> "scope" =: ("user.read calendars.read.shared" :: Text))) jsonResponse mempty
 
-  let resp = parseMaybe parseDeviceCodeResponse (responseBody respJson)
+  let resp = parseDeviceCodeResponse (responseBody respJson)
   case resp of
-    Nothing -> pure $ Left "Failed to parse response from /devicecode"
-    Just deviceCodeResponse -> do
+    Left err -> pure $ Left $ "Failed to parse response from /devicecode: " <> err
+    Right deviceCodeResponse -> do
       T.putStrLn $ "Please visit " <> verificationUrl deviceCodeResponse <> " and enter code " <> userCode deviceCodeResponse <> ". The code has also been copied to your clipboard."
       void $ spawnCommand ("open " <> T.unpack (verificationUrl deviceCodeResponse))
       void $ spawnCommand ("pbcopy <<< " <> T.unpack (userCode deviceCodeResponse))
@@ -108,3 +111,13 @@ getToken = do
       pure $ case eitherToken of
         Left err -> Left $ show err
         Right token -> Right token
+
+printAuthenticatedUserName :: Token -> IO ()
+printAuthenticatedUserName token = do
+  let profile_url = https "graph.microsoft.com" /: "v1.0" /: "me"
+  resp <- runReq defaultHttpConfig $ do
+    req GET profile_url NoReqBody jsonResponse (withToken token)
+  print (responseBody resp :: Value)
+
+getPerson :: Token -> String -> IO (Maybe Person)
+getPerson _tkn _email = undefined
