@@ -65,10 +65,10 @@ executable meet-hs
     other-modules:    Azure, Types
 
     -- LANGUAGE extensions used by modules in this package.
-    -- other-extensions:
+    default-extensions: OverloadedStrings, ScopedTypeVariables
 
     -- Other library packages from which modules are imported.
-    build-depends:    base ^>=4.17.2.1, time, req
+    build-depends:    base ^>=4.17.2.1, time, req, text, aeson
 
     -- Directories containing source files.
     hs-source-dirs:   app
