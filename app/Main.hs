@@ -10,8 +10,6 @@ import System.Exit (exitFailure)
 import System.IO (hFlush, isEOF, stdout)
 import Types
 
-chooseMeeting :: [Person] -> Meeting
-chooseMeeting = undefined
 
 getEmails :: IO [Text]
 getEmails = do
