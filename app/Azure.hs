@@ -2,8 +2,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 
 module Azure
-  ( getPerson,
-    getToken,
+  ( getToken,
     printAuthenticatedUserName,
     getAvailabilityString,
   )
@@ -187,6 +186,3 @@ getAvailabilityString token emails start end = do
   case parseEither parser (responseBody resp) of
     Left err -> error err
     Right entries -> pure entries
-
-getPerson :: Token -> String -> IO (Maybe Person)
-getPerson _tkn _email = undefined

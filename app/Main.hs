@@ -1,15 +1,13 @@
 module Main where
 
 import Azure
-import Control.Monad (forM_)
-import Data.Maybe (catMaybes)
+-- import Data.Maybe (catMaybes)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time.Clock (addUTCTime, getCurrentTime, secondsToNominalDiffTime)
 import System.Exit (exitFailure)
 import System.IO (hFlush, isEOF, stdout)
-import Types
-
+import Types (toPerson)
 
 getEmails :: IO [Text]
 getEmails = do
@@ -37,13 +35,8 @@ main = do
       now <- getCurrentTime
       let twoWeeksLater = addUTCTime (secondsToNominalDiffTime 3600 * 24 * 14) now
       strings <- getAvailabilityString token emailAddrs now twoWeeksLater
-      forM_ strings $ \(s1, s2) -> do
-        putStrLn ""
-        putStrLn $ replicate 80 '-'
-        putStrLn s1
-        putStrLn ""
-        putStrLn s2
-        putStrLn ""
+      let people = map toPerson strings
+      print people
 
 -- let emails = ["me@turing.ac.uk", "you@turing.ac.uk", "etc@turing.ac.uk"]
 -- maybePeople <- mapM getPerson emails
