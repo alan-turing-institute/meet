@@ -5,7 +5,7 @@ module Azure
   ( getPerson,
     getToken,
     printAuthenticatedUserName,
-    printFreeBusySchedule,
+    getAvailabilityString,
   )
 where
 
@@ -20,6 +20,7 @@ import qualified Data.Text.IO as T
 import Data.Time.Clock
 import Data.Time.Format.ISO8601
 import Data.Time.LocalTime
+import qualified Data.Vector as V
 import GHC.Generics
 import Network.HTTP.Req
 import System.Environment (setEnv)
@@ -160,21 +161,32 @@ data SchedulePostBody = SchedulePostBody
 
 instance ToJSON SchedulePostBody
 
-printFreeBusySchedule :: Token -> [String] -> UTCTime -> UTCTime -> IO ()
-printFreeBusySchedule token emails start end = do
+getAvailabilityString :: Token -> [Text] -> UTCTime -> UTCTime -> IO [(String, String)]
+getAvailabilityString token emails start end = do
   start' <- dttzFromUTCTime start
   end' <- dttzFromUTCTime end
   resp <- runReq defaultHttpConfig $ do
     let calendarUrl = https "graph.microsoft.com" /: "v1.0" /: "me" /: "calendar" /: "getSchedule"
     let postBody =
           SchedulePostBody
-            { schedules = map T.pack emails,
+            { schedules = emails,
               startTime = start',
               endTime = end',
               availabilityViewInterval = Just 30
             }
     req POST calendarUrl (ReqBodyJson postBody) jsonResponse (withToken token)
-  print (responseBody resp :: Value)
+  let entryParser :: Value -> Parser (String, String)
+      entryParser = withObject "response.value" $ \o -> do
+        email <- o .: "scheduleId"
+        availability <- o .: "availabilityView"
+        pure (email, availability)
+  let parser :: Value -> Parser [(String, String)]
+      parser = withObject "calendar getSchedule response" $ \o -> do
+        value <- o .: "value"
+        V.toList <$> withArray "value" (mapM entryParser) value
+  case parseEither parser (responseBody resp) of
+    Left err -> error err
+    Right entries -> pure entries
 
 getPerson :: Token -> String -> IO (Maybe Person)
 getPerson _tkn _email = undefined
