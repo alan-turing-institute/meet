@@ -1,7 +1,9 @@
 module Meetings where
 
+import Data.Fixed (Pico (..))
 import Data.List (transpose)
 import Data.Time.Calendar (Day (..), fromGregorian)
+import Data.Time.Clock
 import Types
 
 data RelativeMeeting = RelativeMeeting
@@ -49,6 +51,13 @@ makeRelativeMeeting n e index =
     }
 
 -- RelativeMeeting { startIndex = ..., endIndex = ..., emails = ...}
+--
+indicesToTimes :: UTCTime -> Pico -> Pico -> [UTCTime]
+indicesToTimes startTime interval length =
+  let intervalInSeconds = secondsToNominalDiffTime $ interval * 60
+      addTime :: Pico -> UTCTime
+      addTime idx = addUTCTime (intervalInSeconds * secondsToNominalDiffTime idx) startTime
+   in map addTime [0 .. length]
 
 -------------------------------
 -- Meeting rooms (TBD later) --

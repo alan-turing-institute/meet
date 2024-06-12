@@ -17,6 +17,7 @@ main = do
       meetingDuration = duration args
       searchStartDate = startDate args
       searchSpan = timespan args
+
   startDate' <- case searchStartDate of
     Just d -> pure d
     Nothing -> localDay <$> getCurrentLondonTime
@@ -29,6 +30,7 @@ main = do
       now <- getCurrentTime
       let twoWeeksLater = addUTCTime (secondsToNominalDiffTime 3600 * 24) now
       strings <- getAvailabilityString token emailAddrs now twoWeeksLater meetingInterval
+      print strings
       let people = map toPerson strings
       let relativeMeetings = findRelativeMeetings people chunks
       print relativeMeetings
