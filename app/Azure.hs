@@ -160,8 +160,8 @@ data SchedulePostBody = SchedulePostBody
 
 instance ToJSON SchedulePostBody
 
-getAvailabilityString :: Token -> [Text] -> UTCTime -> UTCTime -> IO [(String, String)]
-getAvailabilityString token emails start end = do
+getAvailabilityString :: Token -> [Text] -> UTCTime -> UTCTime -> Int -> IO [(String, String)]
+getAvailabilityString token emails start end itvl = do
   start' <- dttzFromUTCTime start
   end' <- dttzFromUTCTime end
   resp <- runReq defaultHttpConfig $ do
@@ -171,7 +171,7 @@ getAvailabilityString token emails start end = do
             { schedules = emails,
               startTime = start',
               endTime = end',
-              availabilityViewInterval = Just 30
+              availabilityViewInterval = Just itvl
             }
     req POST calendarUrl (ReqBodyJson postBody) jsonResponse (withToken token)
   let entryParser :: Value -> Parser (String, String)
