@@ -1,15 +1,14 @@
 module Meetings where
 
-import Data.Fixed (Pico (..))
+import Data.Fixed
 import Data.List (transpose)
-import Data.Time.Calendar (Day (..), fromGregorian)
 import Data.Time.Clock
 import Types
 
 data RelativeMeeting = RelativeMeeting
   { startIndex :: Int,
     endIndex :: Int,
-    emails :: [String]
+    relEmails :: [String]
   }
   deriving (Eq, Show)
 
@@ -47,17 +46,25 @@ makeRelativeMeeting n e index =
   RelativeMeeting
     { startIndex = index,
       endIndex = index + n,
-      emails = e
+      relEmails = e
     }
 
--- RelativeMeeting { startIndex = ..., endIndex = ..., emails = ...}
---
-indicesToTimes :: UTCTime -> Pico -> Pico -> [UTCTime]
-indicesToTimes startTime interval length =
-  let intervalInSeconds = secondsToNominalDiffTime $ interval * 60
-      addTime :: Pico -> UTCTime
-      addTime idx = addUTCTime (intervalInSeconds * secondsToNominalDiffTime idx) startTime
-   in map addTime [0 .. length]
+intSecondsToNDT :: Int -> NominalDiffTime
+intSecondsToNDT = secondsToNominalDiffTime . MkFixed . fromIntegral . (* 1000000000000)
+
+indicesToTimes :: UTCTime -> Int -> Int -> [UTCTime]
+indicesToTimes startTime' interval len =
+  let addTime :: Int -> UTCTime
+      addTime idx = addUTCTime (intSecondsToNDT $ interval * 60 * idx) startTime'
+   in map addTime [0 .. len]
+
+absolutiseMeetings :: [UTCTime] -> RelativeMeeting -> Meeting
+absolutiseMeetings times rm =
+  Meeting
+    { startTime = times !! startIndex rm,
+      endTime = times !! endIndex rm,
+      emails = relEmails rm
+    }
 
 -------------------------------
 -- Meeting rooms (TBD later) --
