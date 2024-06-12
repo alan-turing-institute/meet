@@ -42,7 +42,7 @@ data Person = Person
 data Meeting = Meeting
   { startTime :: UTCTime,
     endTime :: UTCTime,
-    people :: [Person]
+    emails :: [String]
   }
   deriving (Eq, Show)
 
