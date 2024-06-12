@@ -2,13 +2,18 @@ module Args (Args (..), getArgs) where
 
 import Data.Text (Text)
 import qualified Data.Text as T
+import Data.Time.Calendar (Day)
 import Options.Applicative
+import Text.Read (readMaybe)
 
 data Args = Args
   { emails :: [Text],
     interval :: Int,
-    duration :: Int
-  } deriving (Eq, Show)
+    duration :: Int,
+    startDate :: Maybe Day,
+    timespan :: Int
+  }
+  deriving (Eq, Show)
 
 parseArgs :: Parser Args
 parseArgs =
@@ -30,6 +35,30 @@ parseArgs =
           <> help "Duration of the meeting. Defaults to 60 minutes."
           <> value 60
       )
+    <*> optional
+      ( option
+          readDate
+          ( long "startDate"
+              <> short 's'
+              <> metavar "YYYY-MM-DD"
+              <> help "First day to start searching for a meeting on"
+          )
+      )
+    <*> option
+      auto
+      ( long "timespan"
+          <> short 's'
+          <> metavar "DAYS"
+          <> help "Number of days to look ahead when searching for meeting slots"
+          <> value 7
+      )
+
+readDate :: ReadM Day
+readDate = do
+  s <- str
+  case readMaybe s of
+    Just d -> pure d
+    Nothing -> error "Date must be specified in YYYY-MM-DD format"
 
 readEmail :: ReadM Text
 readEmail = do
