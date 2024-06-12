@@ -33,8 +33,8 @@ main = do
   putStrLn $ "arguments received: " ++ show args
   let meetingInterval = interval args
   let meetingDuration = duration args
-  let chunks = gracefulDivide meetingDuration meetingInterval  -- exits early if duration < interval
-  print chunks  -- temporary fix to materialize the value of chunks _before_ getting token
+  chunks <- gracefulDivide meetingDuration meetingInterval -- exits early if duration < interval
+  print chunks -- temporary fix to materialize the value of chunks _before_ getting token
   eitherToken <- getToken
   case eitherToken of
     Left err -> print err >> exitFailure
