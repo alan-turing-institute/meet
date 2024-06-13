@@ -139,16 +139,12 @@ data DateTimeTimeZone = DateTimeTimeZone
 
 instance ToJSON DateTimeTimeZone
 
-dttzFromUTCTime :: UTCTime -> IO DateTimeTimeZone
-dttzFromUTCTime t = do
-  now <- getCurrentTime
-  setEnv "TZ" "Europe/London"
-  tz <- getTimeZone now
-  pure $
-    DateTimeTimeZone
-      { dateTime = T.pack $ iso8601Show (utcToLocalTime tz t),
-        timeZone = "Europe/London"
-      }
+dttzFromUTCTime :: UTCTime -> DateTimeTimeZone
+dttzFromUTCTime t =
+  DateTimeTimeZone
+    { dateTime = T.pack $ iso8601Show t,
+      timeZone = "UTC"
+    }
 
 data SchedulePostBody = SchedulePostBody
   { schedules :: [Text],
@@ -162,15 +158,13 @@ instance ToJSON SchedulePostBody
 
 getAvailabilityString :: Token -> [Text] -> UTCTime -> UTCTime -> Int -> IO [(String, String)]
 getAvailabilityString token emails start end itvl = do
-  start' <- dttzFromUTCTime start
-  end' <- dttzFromUTCTime end
   resp <- runReq defaultHttpConfig $ do
     let calendarUrl = https "graph.microsoft.com" /: "v1.0" /: "me" /: "calendar" /: "getSchedule"
     let postBody =
           SchedulePostBody
             { schedules = emails,
-              startTime = start',
-              endTime = end',
+              startTime = dttzFromUTCTime start,
+              endTime = dttzFromUTCTime end,
               availabilityViewInterval = Just itvl
             }
     req POST calendarUrl (ReqBodyJson postBody) jsonResponse (withToken token)

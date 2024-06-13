@@ -1,14 +1,12 @@
 module Utils where
 
 import Data.Time.Clock (getCurrentTime)
-import Data.Time.LocalTime (LocalTime (..), getTimeZone, utcToLocalTime)
-import System.Environment (setEnv)
+import Data.Time.LocalTime (LocalTime (..), getCurrentTimeZone, utcToLocalTime)
 
-getCurrentLondonTime :: IO LocalTime
-getCurrentLondonTime = do
+getCurrentLocalTime :: IO LocalTime
+getCurrentLocalTime = do
   now <- getCurrentTime
-  setEnv "TZ" "Europe/London"
-  tz <- getTimeZone now
+  tz <- getCurrentTimeZone
   pure $ utcToLocalTime tz now
 
 gracefulDivide :: Int -> Int -> IO Int

@@ -1,8 +1,9 @@
 module Meetings where
 
-import Data.Fixed
+import Data.Fixed (Fixed (..))
 import Data.List (transpose)
 import Data.Time.Clock
+import Data.Time.LocalTime (TimeZone, utcToZonedTime)
 import Types
 
 data RelativeMeeting = RelativeMeeting
@@ -11,12 +12,6 @@ data RelativeMeeting = RelativeMeeting
     relEmails :: [String]
   }
   deriving (Eq, Show)
-
--- data Person = Person
---   { personEmail :: String,
---       name :: Maybe String,
---       schedule :: [Availability]
---   }
 
 -- window 2 [1, 2, 3, 4] = [[1, 2], [2, 3], [3, 4]]
 window :: Int -> [a] -> [[a]]
@@ -50,7 +45,7 @@ makeRelativeMeeting n e index =
     }
 
 intSecondsToNDT :: Int -> NominalDiffTime
-intSecondsToNDT = secondsToNominalDiffTime . MkFixed . fromIntegral . (* 1000000000000)
+intSecondsToNDT = secondsToNominalDiffTime . fromIntegral
 
 indicesToTimes :: UTCTime -> Int -> Int -> [UTCTime]
 indicesToTimes startTime' interval len =
@@ -58,11 +53,11 @@ indicesToTimes startTime' interval len =
       addTime idx = addUTCTime (intSecondsToNDT $ interval * 60 * idx) startTime'
    in map addTime [0 .. len]
 
-absolutiseMeetings :: [UTCTime] -> RelativeMeeting -> Meeting
-absolutiseMeetings times rm =
+absolutiseMeetings :: [UTCTime] -> TimeZone -> RelativeMeeting -> Meeting
+absolutiseMeetings times tz rm =
   Meeting
-    { startTime = times !! startIndex rm,
-      endTime = times !! endIndex rm,
+    { startTime = utcToZonedTime tz (times !! startIndex rm),
+      endTime = utcToZonedTime tz (times !! endIndex rm),
       emails = relEmails rm
     }
 
