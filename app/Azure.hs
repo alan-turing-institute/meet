@@ -4,7 +4,7 @@
 module Azure
   ( getToken,
     printAuthenticatedUserName,
-    getAvailabilityString,
+    getAvailabilityText,
   )
 where
 
@@ -102,7 +102,7 @@ parseDeviceCodeResponse = parseEither . withObject "parseDeviceCodeResponse" $ \
     <*> o .: "interval"
     <*> o .: "message"
 
-getToken :: IO (Either String Token)
+getToken :: IO (Either Text Token)
 getToken = do
   respJson <- runReq defaultHttpConfig $ do
     let url = https "login.microsoftonline.com" /: rumTenantId /: "oauth2" /: "v2.0" /: "devicecode"
@@ -110,7 +110,7 @@ getToken = do
 
   let resp = parseDeviceCodeResponse (responseBody respJson)
   case resp of
-    Left err -> pure $ Left $ "Failed to parse response from /devicecode: " <> err
+    Left err -> pure $ Left $ T.pack $ "Failed to parse response from /devicecode: " <> err
     Right deviceCodeResponse -> do
       T.putStrLn $ "Please visit " <> verificationUrl deviceCodeResponse <> " and enter code " <> userCode deviceCodeResponse <> ". The code has also been copied to your clipboard."
       void $ spawnCommand ("open " <> T.unpack (verificationUrl deviceCodeResponse))
@@ -118,7 +118,7 @@ getToken = do
 
       eitherToken <- pollForToken (deviceCode deviceCodeResponse)
       pure $ case eitherToken of
-        Left err -> Left $ show err
+        Left err -> Left $ T.pack $ show err
         Right token -> Right token
 
 printAuthenticatedUserName :: Token -> IO ()
@@ -153,8 +153,8 @@ data SchedulePostBody = SchedulePostBody
 
 instance ToJSON SchedulePostBody
 
-getAvailabilityString :: Token -> [Text] -> UTCTime -> UTCTime -> Int -> IO [(String, String)]
-getAvailabilityString token emails start end itvl = do
+getAvailabilityText :: Token -> [Text] -> UTCTime -> UTCTime -> Int -> IO [(Text, Text)]
+getAvailabilityText token emails start end itvl = do
   resp <- runReq defaultHttpConfig $ do
     let calendarUrl = https "graph.microsoft.com" /: "v1.0" /: "me" /: "calendar" /: "getSchedule"
     let postBody =
@@ -165,12 +165,12 @@ getAvailabilityString token emails start end itvl = do
               availabilityViewInterval = Just itvl
             }
     req POST calendarUrl (ReqBodyJson postBody) jsonResponse (withToken token)
-  let entryParser :: Value -> Parser (String, String)
+  let entryParser :: Value -> Parser (Text, Text)
       entryParser = withObject "response.value" $ \o -> do
         email <- o .: "scheduleId"
         availability <- o .: "availabilityView"
         pure (email, availability)
-  let parser :: Value -> Parser [(String, String)]
+  let parser :: Value -> Parser [(Text, Text)]
       parser = withObject "calendar getSchedule response" $ \o -> do
         value <- o .: "value"
         V.toList <$> withArray "value" (mapM entryParser) value

@@ -13,17 +13,17 @@ data RelativeMeeting = RelativeMeeting
   deriving (Eq, Show)
 
 -- window 2 [1, 2, 3, 4] = [[1, 2], [2, 3], [3, 4]]
-window :: Int -> [a] -> [[a]]
-window n xs =
+makeWindows :: Int -> [a] -> [[a]]
+makeWindows n xs =
   if n > length xs
     then []
-    else take n xs : window n (tail xs)
+    else take n xs : makeWindows n (tail xs)
 
 isAllAvailable :: [[Availability]] -> Bool
-isAllAvailable window = all (== Free) (concat window)
+isAllAvailable = all (all (== Free))
 
 getAvailabilityWindows :: [Schedule] -> Int -> [[[Availability]]]
-getAvailabilityWindows schs n = window n (transpose (map schedule schs))
+getAvailabilityWindows schs n = makeWindows n (transpose (map schedule schs))
 
 findRelativeMeetings :: [Schedule] -> Int -> [RelativeMeeting]
 findRelativeMeetings schs n =
