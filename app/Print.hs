@@ -9,7 +9,6 @@ import qualified Data.Text.IO as T
 import Data.Time.Calendar (Day, dayOfWeek, toGregorian)
 import qualified Data.Time.Calendar as C
 import Data.Time.LocalTime (LocalTime (..), TimeOfDay (..), ZonedTime (..))
-import Graphics.Text.Width (safeWctwidth)
 import System.Console.ANSI
 import Types (Meeting (..), getEmail, getShortName)
 
@@ -88,7 +87,7 @@ prettyPrint ms = do
           ++ map (\room -> if room `elem` rooms m then " * " else "") relevantMeetingRooms
       meetingRows = map makeMeetingRow ms
       allRows = headerRow : meetingRows
-      colWidths = map (maximum . map safeWctwidth) (transpose allRows)
+      colWidths = map (maximum . map T.length) (transpose allRows)
       -- Separator rows
       topSepRow =
         topLeftCornerChar
