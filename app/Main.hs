@@ -1,12 +1,18 @@
+{-# LANGUAGE TypeApplications #-}
+
 module Main where
 
 import Args
 import Azure
-import Data.Time.Clock (addUTCTime, getCurrentTime, secondsToNominalDiffTime)
-import Data.Time.LocalTime (LocalTime (..), getCurrentTimeZone)
-import Meetings (absolutiseMeetings, findRelativeMeetings, indicesToTimes)
+import Data.List (partition)
+import qualified Data.Map as M
+import qualified Data.Text as T
+import Data.Time.Calendar (addDays)
+import Data.Time.Clock (diffUTCTime, nominalDiffTimeToSeconds)
+import Data.Time.LocalTime (LocalTime (..), TimeOfDay (..), getCurrentTimeZone, localTimeToUTC, timeOfDayToTime)
+import Meetings
 import System.Exit (exitFailure)
-import Types (toPerson)
+import Types
 import Utils
 
 main :: IO ()
@@ -22,26 +28,26 @@ main = do
     Just d -> pure d
     Nothing -> localDay <$> getCurrentLocalTime
 
-  -- TODO: Construct startTime' from startDate'.
-  -- Proposal: ALWAYS start at 9am on startDate', to make the maths simpler. If
-  -- run at 2pm, this will suggest meetings that are in the past. However, we
-  -- can filter this out.
-  startTime' <- getCurrentTime
-  -- TODO: Construct endTime' from startDate' and searchSpan.
-  -- Proposal: ALWAYS end at 5pm on endDate', to make the maths simpler.
-  let endTime' = addUTCTime (secondsToNominalDiffTime 3600 * 24) startTime'
-  -- TODO: Calculate this correctly based on (endTime' - startTime').
-  let timeListLength = quot (24 * 60) meetingInterval
-
   localTz <- getCurrentTimeZone
-  chunks <- gracefulDivide meetingDuration meetingInterval -- exits early if duration < interval
+  let startTime' = localTimeToUTC localTz $ LocalTime startDate' (TimeOfDay 8 30 0)
+  let endDate' = addDays (toInteger searchSpan - 1) startDate'
+      endTime' = localTimeToUTC localTz $ LocalTime endDate' (TimeOfDay 17 30 0)
+      timeListSeconds = floor @Double . realToFrac . nominalDiffTimeToSeconds $ diffUTCTime endTime' startTime'
+  let timeListLength = quot (timeListSeconds `quot` 60) meetingInterval
 
+  let roomEmailAddrs = map T.pack (M.keys allRooms)
+
+  nChunks <- gracefulDivide meetingDuration meetingInterval -- exits early if duration < interval
   eitherToken <- getToken
   case eitherToken of
     Left err -> print err >> exitFailure
     Right token -> do
-      strings <- getAvailabilityString token emailAddrs startTime' endTime' meetingInterval
-      let relativeMeetings = findRelativeMeetings (map toPerson strings) chunks
-      let timeList = indicesToTimes startTime' meetingInterval timeListLength
-      let meetings = map (absolutiseMeetings timeList localTz) relativeMeetings
-      print meetings
+      strings <- getAvailabilityString token (emailAddrs ++ roomEmailAddrs) startTime' endTime' meetingInterval
+      let schedules = map toSchedule strings
+          (personSchedules, roomSchedules) = partition isPerson schedules
+          relativeMeetings = findRelativeMeetings personSchedules nChunks
+          relativeMeetingsWithRooms = map (addRoomsToMeeting roomSchedules) relativeMeetings
+          timeList = indicesToTimes startTime' meetingInterval timeListLength
+          meetings = map (absolutiseMeetings timeList localTz) relativeMeetingsWithRooms
+          goodMeetings = filter isMeetingTimeGood meetings -- enforce working hours :)
+      mapM_ (\m -> print m >> putStrLn "") goodMeetings

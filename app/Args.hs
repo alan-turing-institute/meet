@@ -47,7 +47,7 @@ parseArgs =
     <*> option
       auto
       ( long "timespan"
-          <> short 's'
+          <> short 't'
           <> metavar "DAYS"
           <> help "Number of days to look ahead when searching for meeting slots"
           <> value 7

@@ -18,13 +18,10 @@ import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as T
 import Data.Time.Clock
 import Data.Time.Format.ISO8601
-import Data.Time.LocalTime
 import qualified Data.Vector as V
 import GHC.Generics
 import Network.HTTP.Req
-import System.Environment (setEnv)
 import System.Process (spawnCommand)
-import Types (Person)
 
 newtype Token = Token {_unToken :: Text}
 

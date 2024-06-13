@@ -1,6 +1,5 @@
 module Meetings where
 
-import Data.Fixed (Fixed (..))
 import Data.List (transpose)
 import Data.Time.Clock
 import Data.Time.LocalTime (TimeZone, utcToZonedTime)
@@ -9,7 +8,7 @@ import Types
 data RelativeMeeting = RelativeMeeting
   { startIndex :: Int,
     endIndex :: Int,
-    relEmails :: [String]
+    relPeople :: [Entity]
   }
   deriving (Eq, Show)
 
@@ -23,25 +22,24 @@ window n xs =
 isAllAvailable :: [[Availability]] -> Bool
 isAllAvailable window = all (== Free) (concat window)
 
-getAvailabilityWindows :: [Person] -> Int -> [[[Availability]]]
-getAvailabilityWindows people n = window n (transpose (map schedule people))
+getAvailabilityWindows :: [Schedule] -> Int -> [[[Availability]]]
+getAvailabilityWindows schs n = window n (transpose (map schedule schs))
 
-findRelativeMeetings :: [Person] -> Int -> [RelativeMeeting]
-findRelativeMeetings people n =
-  let windows = getAvailabilityWindows people n
-      windowAvailabilities :: [Bool]
+findRelativeMeetings :: [Schedule] -> Int -> [RelativeMeeting]
+findRelativeMeetings schs n =
+  let windows = getAvailabilityWindows schs n
       windowAvailabilities = map isAllAvailable windows
-      indicesAndAvailabilities = zip [(0 :: Int) ..] windowAvailabilities
+      indicesAndAvailabilities = zip [0 ..] windowAvailabilities
       indicesWhereTrue = map fst (filter snd indicesAndAvailabilities)
-      emails' = map personEmail people
-   in map (makeRelativeMeeting n emails') indicesWhereTrue
+      es = map entity schs
+   in map (makeRelativeMeeting n es) indicesWhereTrue
 
-makeRelativeMeeting :: Int -> [String] -> Int -> RelativeMeeting
-makeRelativeMeeting n e index =
+makeRelativeMeeting :: Int -> [Entity] -> Int -> RelativeMeeting
+makeRelativeMeeting n es index =
   RelativeMeeting
     { startIndex = index,
       endIndex = index + n,
-      relEmails = e
+      relPeople = es
     }
 
 intSecondsToNDT :: Int -> NominalDiffTime
@@ -53,27 +51,29 @@ indicesToTimes startTime' interval len =
       addTime idx = addUTCTime (intSecondsToNDT $ interval * 60 * idx) startTime'
    in map addTime [0 .. len]
 
-absolutiseMeetings :: [UTCTime] -> TimeZone -> RelativeMeeting -> Meeting
-absolutiseMeetings times tz rm =
+absolutiseMeetings :: [UTCTime] -> TimeZone -> RelativeMeetingWithRooms -> Meeting
+absolutiseMeetings times tz rmwr =
   Meeting
-    { startTime = utcToZonedTime tz (times !! startIndex rm),
-      endTime = utcToZonedTime tz (times !! endIndex rm),
-      emails = relEmails rm
+    { startTime = utcToZonedTime tz (times !! startIndex (rm rmwr)),
+      endTime = utcToZonedTime tz (times !! endIndex (rm rmwr)),
+      people = relPeople (rm rmwr),
+      rooms = roomsR rmwr
     }
 
--------------------------------
--- Meeting rooms (TBD later) --
--------------------------------
+isRoomAvailable :: Int -> Int -> Schedule -> Bool
+isRoomAvailable start end sch =
+  let period = take (end - start) $ drop start $ schedule sch
+   in all (== Free) period
 
-data Entity = ERoom Int String | EPerson String
+findMeetingRooms :: [Schedule] -> RelativeMeeting -> [Entity]
+findMeetingRooms rschedules m =
+  let freeSchedules = filter (isRoomAvailable (startIndex m) (endIndex m)) rschedules
+   in map entity freeSchedules
 
-email :: Entity -> String
-email (ERoom _ s) = s
-email (EPerson s) = s
+data RelativeMeetingWithRooms = RelativeMeetingWithRooms
+  { rm :: RelativeMeeting,
+    roomsR :: [Entity]
+  }
 
-findMeetingTimes :: [Entity] -> [Meeting]
-findMeetingTimes = undefined
-
--- do a find meeting request with all of the pre-defined meeting rooms
-findMeetingRoom :: [Meeting] -> Int -> [Meeting]
-findMeetingRoom = undefined
+addRoomsToMeeting :: [Schedule] -> RelativeMeeting -> RelativeMeetingWithRooms
+addRoomsToMeeting rSchedules rm' = RelativeMeetingWithRooms rm' (findMeetingRooms rSchedules rm')
