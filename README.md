@@ -1,6 +1,17 @@
-Meet people around the Turing.
+# Meet people around the Turing
 
+## Installation
+
+```shell
+brew tap alan-turing-institute/hut23
+brew install alan-turing-institute/hut23/meet
 ```
+
+## Usage
+
+```shell
+> meet -h
+
 meet - a tool to schedule a meeting
 
 Usage: meet EMAILS... [-i|--interval MINUTES] [-d|--duration MINUTES]
