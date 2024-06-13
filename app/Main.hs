@@ -11,7 +11,7 @@ import Data.Time.Calendar (addDays)
 import Data.Time.Clock (diffUTCTime, nominalDiffTimeToSeconds)
 import Data.Time.LocalTime (LocalTime (..), TimeOfDay (..), getCurrentTimeZone, localTimeToUTC)
 import Meetings
-import Print (prettyPrint)
+import Print (infoPrint, prettyPrint)
 import System.Exit (exitFailure)
 import Types
 import Utils
@@ -55,5 +55,5 @@ main = do
           meetings = map (absolutiseMeetings timeList localTz) relativeMeetingsWithRooms
           goodMeetings = filter (isMeetingGood inPerson) meetings -- enforce working hours :)
       if argsFeelingLucky args
-        then prettyPrint (take 3 $ chooseTopMeetings goodMeetings)
+        then infoPrint (take 3 $ chooseTopMeetings goodMeetings)
         else prettyPrint goodMeetings

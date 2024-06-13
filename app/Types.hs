@@ -4,6 +4,7 @@ module Types
     Availability (..),
     Schedule (..),
     getEntity,
+    getEmail,
     toSchedule,
     isPerson,
     allRooms,
@@ -81,6 +82,10 @@ getEntity :: String -> Entity
 getEntity email = case M.lookup email allRooms of
   Just (location, capacity) -> Room email location capacity
   Nothing -> Person email
+
+getEmail :: Entity -> String
+getEmail (Person e) = e
+getEmail (Room e _ _) = e
 
 toSchedule :: (String, String) -> Schedule
 toSchedule t =
