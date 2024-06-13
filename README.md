@@ -7,6 +7,17 @@ brew tap alan-turing-institute/hut23
 brew install alan-turing-institute/hut23/meet
 ```
 
+## From source?
+
+[Install `ghcup`](https://www.haskell.org/ghcup/), then use it to install GHC 9.4 and Cabal 3.8.
+(Newer versions of GHC and Cabal should in theory also work.)
+
+```
+git clone git@github.com:alan-turing-institute/meet.git
+cd meet
+cabal install
+```
+
 ## Usage
 
 ```shell
