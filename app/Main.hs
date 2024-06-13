@@ -9,7 +9,7 @@ import qualified Data.Map as M
 import qualified Data.Text as T
 import Data.Time.Calendar (addDays)
 import Data.Time.Clock (diffUTCTime, nominalDiffTimeToSeconds)
-import Data.Time.LocalTime (LocalTime (..), TimeOfDay (..), getCurrentTimeZone, localTimeToUTC, timeOfDayToTime)
+import Data.Time.LocalTime (LocalTime (..), TimeOfDay (..), getCurrentTimeZone, localTimeToUTC)
 import Meetings
 import Print (prettyPrint)
 import System.Exit (exitFailure)

@@ -62,7 +62,7 @@ executable meet-hs
     main-is:          Main.hs
 
     -- Modules included in this executable, other than Main.
-    other-modules:    Azure, Types, Meetings, Args, Utils
+    other-modules:    Azure, Types, Meetings, Args, Utils, Print
 
     -- LANGUAGE extensions used by modules in this package.
     default-extensions: OverloadedStrings, ScopedTypeVariables
