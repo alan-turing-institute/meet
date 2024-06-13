@@ -7,7 +7,7 @@ module Types
     toSchedule,
     isPerson,
     allRooms,
-    isMeetingTimeGood,
+    isMeetingGood,
   )
 where
 
@@ -103,12 +103,16 @@ onWeekend m = case dayOfWeek $ localDay $ zonedTimeToLocalTime $ startTime $ m o
   Sunday -> True
   _ -> False
 
-isMeetingTimeGood :: Meeting -> Bool
-isMeetingTimeGood m =
+noRoomsButInPerson :: Meeting -> Int -> Bool
+noRoomsButInPerson m n = null (rooms m) && n > 0
+
+isMeetingGood :: Int -> Meeting -> Bool
+isMeetingGood inPerson m =
   (localTimeOfDay (zonedTimeToLocalTime (startTime m)) >= TimeOfDay 8 30 0)
     && (localTimeOfDay (zonedTimeToLocalTime (endTime m)) <= TimeOfDay 17 30 0)
     && not (onWeekend m)
     && localDay (zonedTimeToLocalTime (startTime m)) == localDay (zonedTimeToLocalTime (endTime m))
+    && not (noRoomsButInPerson m inPerson)
 
 instance Eq Meeting where
   m1 == m2 =

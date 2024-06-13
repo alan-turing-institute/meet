@@ -1,6 +1,6 @@
 module Meetings where
 
-import Data.List (transpose)
+import Data.List (sortOn, transpose)
 import Data.Time.Clock
 import Data.Time.LocalTime (TimeZone, utcToZonedTime)
 import Types
@@ -77,3 +77,21 @@ data RelativeMeetingWithRooms = RelativeMeetingWithRooms
 
 addRoomsToMeeting :: [Schedule] -> RelativeMeeting -> RelativeMeetingWithRooms
 addRoomsToMeeting rSchedules rm' = RelativeMeetingWithRooms rm' (findMeetingRooms rSchedules rm')
+
+roomSizeDiff :: Int -> Entity -> Int
+roomSizeDiff n r = abs (capacity r - n)
+
+meetingRank :: Meeting -> Int
+meetingRank m = case length (people m) of
+  0 -> 0 -- Nobody available to meet :(
+  l -> case rooms m of
+    [] -> 10000
+    rs -> minimum $ map (roomSizeDiff l) rs
+
+chooseTopMeetings :: [Meeting] -> [Meeting]
+chooseTopMeetings = sortOn meetingRank
+
+-- chooseTopMeetings n meets =
+
+-- sortBy
+--   first: check if you can get a meeting room ~ numPeople

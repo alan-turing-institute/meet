@@ -7,11 +7,13 @@ import Options.Applicative
 import Text.Read (readMaybe)
 
 data Args = Args
-  { emails :: [Text],
-    interval :: Int,
-    duration :: Int,
-    startDate :: Maybe Day,
-    timespan :: Int
+  { argsEmails :: [Text],
+    argsInterval :: Int,
+    argsDuration :: Int,
+    argsStartDate :: Maybe Day,
+    argsTimespan :: Int,
+    argsInPerson :: Int,
+    argsFeelingLucky :: Bool
   }
   deriving (Eq, Show)
 
@@ -51,6 +53,19 @@ parseArgs =
           <> metavar "DAYS"
           <> help "Number of days to look ahead when searching for meeting slots"
           <> value 7
+      )
+    <*> option
+      auto
+      ( long "people"
+          <> short 'p'
+          <> metavar "PEOPLE"
+          <> help "Number of people who will be attending in person"
+          <> value 0
+      )
+    <*> switch
+      ( long "lucky"
+          <> short 'l'
+          <> help "Suggest the three best meeting times"
       )
 
 readDate :: ReadM Day

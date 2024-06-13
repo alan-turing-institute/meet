@@ -11,6 +11,7 @@ import Data.Time.Calendar (addDays)
 import Data.Time.Clock (diffUTCTime, nominalDiffTimeToSeconds)
 import Data.Time.LocalTime (LocalTime (..), TimeOfDay (..), getCurrentTimeZone, localTimeToUTC, timeOfDayToTime)
 import Meetings
+import Print (prettyPrint)
 import System.Exit (exitFailure)
 import Types
 import Utils
@@ -18,11 +19,12 @@ import Utils
 main :: IO ()
 main = do
   args <- getArgs
-  let emailAddrs = emails args
-      meetingInterval = interval args
-      meetingDuration = duration args
-      searchStartDate = startDate args
-      searchSpan = timespan args
+  let emailAddrs = argsEmails args
+      meetingInterval = argsInterval args
+      meetingDuration = argsDuration args
+      searchStartDate = argsStartDate args
+      searchSpan = argsTimespan args
+      inPerson = argsInPerson args
 
   startDate' <- case searchStartDate of
     Just d -> pure d
@@ -35,7 +37,9 @@ main = do
       timeListSeconds = floor @Double . realToFrac . nominalDiffTimeToSeconds $ diffUTCTime endTime' startTime'
   let timeListLength = quot (timeListSeconds `quot` 60) meetingInterval
 
-  let roomEmailAddrs = map T.pack (M.keys allRooms)
+  let roomIsOk :: (a, Int) -> Bool
+      roomIsOk t = snd t >= inPerson
+  let roomEmailAddrs = map T.pack $ M.keys $ M.filter roomIsOk allRooms
 
   nChunks <- gracefulDivide meetingDuration meetingInterval -- exits early if duration < interval
   eitherToken <- getToken
@@ -49,5 +53,7 @@ main = do
           relativeMeetingsWithRooms = map (addRoomsToMeeting roomSchedules) relativeMeetings
           timeList = indicesToTimes startTime' meetingInterval timeListLength
           meetings = map (absolutiseMeetings timeList localTz) relativeMeetingsWithRooms
-          goodMeetings = filter isMeetingTimeGood meetings -- enforce working hours :)
-      mapM_ (\m -> print m >> putStrLn "") goodMeetings
+          goodMeetings = filter (isMeetingGood inPerson) meetings -- enforce working hours :)
+      if argsFeelingLucky args
+        then prettyPrint (take 3 $ chooseTopMeetings goodMeetings)
+        else prettyPrint goodMeetings
