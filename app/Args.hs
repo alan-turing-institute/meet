@@ -65,7 +65,7 @@ parseArgs =
     <*> switch
       ( long "lucky"
           <> short 'l'
-          <> help "Suggest the three best meeting times"
+          <> help "Make the app suggest a single best meeting time (and room if needed)"
       )
 
 readDate :: ReadM Day
