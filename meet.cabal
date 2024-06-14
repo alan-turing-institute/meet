@@ -20,9 +20,7 @@ executable meet
     main-is:          Main.hs
     other-modules:    Azure, Types, Meetings, Args, Utils, Print
     default-extensions: OverloadedStrings, ScopedTypeVariables
-    -- base=4.18 (GHC 9.6) doesn't work for some reason, https://github.com/haskell/cabal/issues/9266
-    -- tested with cabal 3.8 and 3.10 and both don't work
-    build-depends:  base ^>=4.17 || ^>=4.19,
+    build-depends:  base ^>=4.17 || ^>=4.18 || ^>=4.19,
                     time, req, text, aeson,
                     process, vector, optparse-applicative,
                     containers, extra, ansi-terminal
