@@ -4,8 +4,10 @@ module Main where
 
 import Args
 import Azure
+import Control.Monad (when)
 import Data.List (partition)
 import qualified Data.Map as M
+import qualified Data.Text.IO as T
 import Data.Time.Calendar (addDays)
 import Data.Time.Clock (diffUTCTime, nominalDiffTimeToSeconds)
 import Data.Time.LocalTime (LocalTime (..), TimeOfDay (..), getCurrentTimeZone, localTimeToUTC)
@@ -14,6 +16,13 @@ import Print (infoPrint, prettyPrint)
 import System.Exit (exitFailure)
 import Types
 import Utils
+
+partitionEither' :: [(a, Either b c)] -> ([(a, c)], [a])
+partitionEither' = foldr f ([], [])
+  where
+    f (a, e) (successes, failures) = case e of
+      Left _ -> (successes, a : failures)
+      Right success -> ((a, success) : successes, failures)
 
 main :: IO ()
 main = do
@@ -46,7 +55,12 @@ main = do
     Left err -> print err >> exitFailure
     Right token -> do
       strings <- getAvailabilityText token (emailAddrs ++ roomEmailAddrs) startTime' endTime' meetingInterval
-      let schedules = map toSchedule strings
+      let (successStrings, failureStrings) = partitionEither' strings
+      when (not $ null failureStrings) $ do
+        T.putStrLn "Failed to get availability for the following email addresses. Check if they exist:"
+        mapM_ T.putStrLn failureStrings
+        exitFailure
+      let schedules = map toSchedule successStrings
           (personSchedules, roomSchedules) = partition isPerson schedules
           relativeMeetings = findRelativeMeetings personSchedules nChunks
           relativeMeetingsWithRooms = map (addRoomsToMeeting roomSchedules) relativeMeetings

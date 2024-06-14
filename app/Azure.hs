@@ -153,7 +153,7 @@ data SchedulePostBody = SchedulePostBody
 
 instance ToJSON SchedulePostBody
 
-getAvailabilityText :: Token -> [Text] -> UTCTime -> UTCTime -> Int -> IO [(Text, Text)]
+getAvailabilityText :: Token -> [Text] -> UTCTime -> UTCTime -> Int -> IO [(Text, Either Text Text)]
 getAvailabilityText token emails start end itvl = do
   resp <- runReq defaultHttpConfig $ do
     let calendarUrl = https "graph.microsoft.com" /: "v1.0" /: "me" /: "calendar" /: "getSchedule"
@@ -165,12 +165,17 @@ getAvailabilityText token emails start end itvl = do
               availabilityViewInterval = Just itvl
             }
     req POST calendarUrl (ReqBodyJson postBody) jsonResponse (withToken token)
-  let entryParser :: Value -> Parser (Text, Text)
+  let entryParser :: Value -> Parser (Text, Either Text Text)
       entryParser = withObject "response.value" $ \o -> do
         email <- o .: "scheduleId"
-        availability <- o .: "availabilityView"
-        pure (email, availability)
-  let parser :: Value -> Parser [(Text, Text)]
+        availability <- o .:? "availabilityView"
+        case availability of
+          Just a -> pure $ (email, Right a)
+          Nothing -> do
+            e <- o .: "error"
+            message <- e .: "message"
+            pure (email, Left message)
+  let parser :: Value -> Parser [(Text, Either Text Text)]
       parser = withObject "calendar getSchedule response" $ \o -> do
         value <- o .: "value"
         V.toList <$> withArray "value" (mapM entryParser) value
