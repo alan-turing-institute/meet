@@ -17,11 +17,11 @@ import System.Exit (exitFailure)
 import Types
 import Utils
 
-partitionEither' :: [(a, Either b c)] -> ([(a, c)], [a])
+partitionEither' :: [(a, Either b c)] -> ([(a, c)], [(a, b)])
 partitionEither' = foldr f ([], [])
   where
     f (a, e) (successes, failures) = case e of
-      Left _ -> (successes, a : failures)
+      Left failure -> (successes, (a, failure) : failures)
       Right success -> ((a, success) : successes, failures)
 
 main :: IO ()
@@ -58,7 +58,7 @@ main = do
       let (successStrings, failureStrings) = partitionEither' strings
       when (not $ null failureStrings) $ do
         T.putStrLn "Failed to get availability for the following email addresses. Check if they exist:"
-        mapM_ T.putStrLn failureStrings
+        mapM_ (\(email, message) -> T.putStrLn $ " - " <> email <> " (Message: " <> message <> ")") failureStrings
         exitFailure
       let schedules = map toSchedule successStrings
           (personSchedules, roomSchedules) = partition isPerson schedules
