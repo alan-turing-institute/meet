@@ -5,13 +5,14 @@ import qualified Data.Text as T
 import Data.Time.Calendar (Day)
 import Options.Applicative
 import Text.Read (readMaybe)
+import Types (Days (..), Minutes (..))
 
 data Args = Args
   { argsEmails :: [Text],
-    argsInterval :: Int,
-    argsDuration :: Int,
+    argsInterval :: Minutes,
+    argsDuration :: Minutes,
     argsStartDate :: Maybe Day,
-    argsTimespan :: Int,
+    argsTimespan :: Days,
     argsInPerson :: Int,
     argsFeelingLucky :: Bool
   }
@@ -22,20 +23,20 @@ parseArgs =
   Args
     <$> some (argument readEmail (metavar "EMAILS..." <> help "Email addresses of the people you want to stalk. If you don't include @turing.ac.uk, it will be appended for you."))
     <*> option
-      auto
+      (Minutes <$> auto)
       ( long "interval"
           <> short 'i'
           <> metavar "MINUTES"
           <> help "Granularity of schedule fetched. Defaults to 15 minutes."
-          <> value 15
+          <> value (Minutes 15)
       )
     <*> option
-      auto
+      (Minutes <$> auto)
       ( long "duration"
           <> short 'd'
           <> metavar "MINUTES"
           <> help "Duration of the meeting. Defaults to 60 minutes."
-          <> value 60
+          <> value (Minutes 60)
       )
     <*> optional
       ( option
@@ -43,29 +44,29 @@ parseArgs =
           ( long "startDate"
               <> short 's'
               <> metavar "YYYY-MM-DD"
-              <> help "First day to start searching for a meeting on"
+              <> help "First day to start searching for a meeting on."
           )
       )
     <*> option
-      auto
+      (Days <$> auto)
       ( long "timespan"
           <> short 't'
           <> metavar "DAYS"
-          <> help "Number of days to look ahead when searching for meeting slots"
-          <> value 7
+          <> help "Number of days to look ahead when searching for meeting slots. Defaults to a week."
+          <> value (Days 7)
       )
     <*> option
       auto
       ( long "people"
           <> short 'p'
           <> metavar "PEOPLE"
-          <> help "Number of people who will be attending in person"
+          <> help "Number of people who will be attending in person."
           <> value 0
       )
     <*> switch
       ( long "lucky"
           <> short 'l'
-          <> help "Make the app suggest a single best meeting time (and room if needed)"
+          <> help "Make the app suggest a single best meeting time (and room if needed)."
       )
 
 readDate :: ReadM Day

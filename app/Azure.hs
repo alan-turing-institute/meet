@@ -24,7 +24,7 @@ import GHC.Generics
 import Network.HTTP.Req
 import Print (prettyThrow)
 import System.Process (spawnCommand)
-import Types (Availability (..), Schedule (..), getEntity)
+import Types (Availability (..), Schedule (..), Minutes (..), getEntity)
 import Utils (partitionTupledEither)
 
 newtype Token = Token {_unToken :: Text}
@@ -158,7 +158,7 @@ data SchedulePostBody = SchedulePostBody
 
 instance ToJSON SchedulePostBody
 
-getAvailabilityText :: Token -> [Text] -> UTCTime -> UTCTime -> Int -> IO [(Text, Either Text Text)]
+getAvailabilityText :: Token -> [Text] -> UTCTime -> UTCTime -> Minutes -> IO [(Text, Either Text Text)]
 getAvailabilityText token emails start end itvl = do
   resp <- runReq defaultHttpConfig $ do
     let calendarUrl = https "graph.microsoft.com" /: "v1.0" /: "me" /: "calendar" /: "getSchedule"
@@ -167,7 +167,7 @@ getAvailabilityText token emails start end itvl = do
             { schedules = emails,
               startTime = dttzFromUTCTime start,
               endTime = dttzFromUTCTime end,
-              availabilityViewInterval = Just itvl
+              availabilityViewInterval = Just (unMinutes itvl)
             }
     req POST calendarUrl (ReqBodyJson postBody) jsonResponse (withToken token)
   let entryParser :: Value -> Parser (Text, Either Text Text)
@@ -207,7 +207,7 @@ toSchedule t =
       schedule = parseAvailabilityText (snd t)
     }
 
-getAvailabilityTextThrow :: Token -> [Text] -> UTCTime -> UTCTime -> Int -> IO [Schedule]
+getAvailabilityTextThrow :: Token -> [Text] -> UTCTime -> UTCTime -> Minutes -> IO [Schedule]
 getAvailabilityTextThrow token emails start end itvl = do
   strings <- getAvailabilityText token emails start end itvl
   let (successStrings, failureStrings) = partitionTupledEither strings

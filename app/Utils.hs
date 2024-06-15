@@ -1,5 +1,6 @@
 module Utils where
 
+import Types (Minutes (..))
 import Data.Time.Clock (getCurrentTime)
 import Data.Time.LocalTime (LocalTime (..), getCurrentTimeZone, utcToLocalTime)
 
@@ -9,8 +10,8 @@ getCurrentLocalTime = do
   tz <- getCurrentTimeZone
   pure $ utcToLocalTime tz now
 
-gracefulDivide :: Int -> Int -> IO Int
-gracefulDivide numerator denominator = do
+gracefulDivide :: Minutes -> Minutes -> IO Int
+gracefulDivide (Minutes numerator) (Minutes denominator) = do
   case quotRem numerator denominator of
     (0, _) ->
       error $

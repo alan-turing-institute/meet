@@ -100,11 +100,22 @@ compareMeeting m1 m2 = case meetingScore m1 `compare` meetingScore m2 of
 chooseBestMeeting :: NonEmpty Meeting -> Meeting
 chooseBestMeeting ms = maximumBy compareMeeting ms
 
-getMeetings :: [Schedule] -> Int -> Int -> UTCTime -> Int -> Int -> TimeZone -> [Meeting]
-getMeetings schedules inPerson nChunks startTime' meetingInterval timeListLength localTz =
+absolutiseMeetings' :: UTCTime -> Minutes -> TimeZone -> RelativeMeetingWithRooms -> Meeting
+absolutiseMeetings' startTime' intervalMinutes tz rmwr =
+  Meeting
+    { startTime = utcToZonedTime tz (indexToTime $ startIndex $ rm rmwr),
+      endTime = utcToZonedTime tz (indexToTime $ endIndex $ rm rmwr),
+      people = relPeople (rm rmwr),
+      rooms = roomsR rmwr
+    }
+  where
+    indexToTime :: Int -> UTCTime
+    indexToTime idx = addUTCTime (intSecondsToNDT $ (unMinutes intervalMinutes) * 60 * idx) startTime'
+
+getMeetings :: [Schedule] -> Int -> Int -> UTCTime -> Minutes -> TimeZone -> [Meeting]
+getMeetings schedules inPerson nChunks startTime' intervalMinutes localTz =
   let (personSchedules, roomSchedules) = partition isPerson schedules
       relativeMeetings = findRelativeMeetings personSchedules nChunks
       relativeMeetingsWithRooms = map (addRoomsToMeeting roomSchedules) relativeMeetings
-      timeList = indicesToTimes startTime' meetingInterval timeListLength
-      meetings = map (absolutiseMeetings timeList localTz) relativeMeetingsWithRooms
+      meetings = map (absolutiseMeetings' startTime' intervalMinutes localTz) relativeMeetingsWithRooms
    in filter (isMeetingGood inPerson) meetings

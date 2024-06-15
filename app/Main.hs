@@ -8,7 +8,6 @@ import qualified Data.List.NonEmpty as NE
 import qualified Data.Map as M
 import qualified Data.Text.IO as T
 import Data.Time.Calendar (addDays)
-import Data.Time.Clock (diffUTCTime, nominalDiffTimeToSeconds)
 import Data.Time.LocalTime (LocalTime (..), TimeOfDay (..), getCurrentTimeZone, localTimeToUTC)
 import Meetings (chooseBestMeeting, getMeetings)
 import Print (infoPrint, prettyPrint)
@@ -19,12 +18,12 @@ main :: IO ()
 main = do
   args <- getArgs
   let emailAddrs = argsEmails args
-      meetingInterval = argsInterval args
-      meetingDuration = argsDuration args
+      intervalMinutes = argsInterval args
+      durationMinutes = argsDuration args
       searchStartDate = argsStartDate args
-      searchSpan = argsTimespan args
+      searchSpanDays = argsTimespan args
       inPerson = argsInPerson args
-  nChunks <- gracefulDivide meetingDuration meetingInterval
+  nChunks <- gracefulDivide durationMinutes intervalMinutes
 
   startDate' <- case searchStartDate of
     Just d -> pure d
@@ -32,18 +31,16 @@ main = do
 
   localTz <- getCurrentTimeZone
   let startTime' = localTimeToUTC localTz $ LocalTime startDate' (TimeOfDay 8 30 0)
-  let endDate' = addDays (toInteger searchSpan - 1) startDate'
+  let endDate' = addDays (fromIntegral $ unDays searchSpanDays - 1) startDate'
       endTime' = localTimeToUTC localTz $ LocalTime endDate' (TimeOfDay 17 30 0)
-      timeListSeconds = floor @Double . realToFrac . nominalDiffTimeToSeconds $ diffUTCTime endTime' startTime'
-  let timeListLength = quot (timeListSeconds `quot` 60) meetingInterval
 
   let roomIsOk :: (a, Int, b) -> Bool
       roomIsOk (_, cap, _) = cap >= inPerson
   let roomEmailAddrs = M.keys $ M.filter roomIsOk allRooms
 
   token <- getTokenThrow
-  schedules <- getAvailabilityTextThrow token (emailAddrs ++ roomEmailAddrs) startTime' endTime' meetingInterval
-  let goodMeetings = getMeetings schedules inPerson nChunks startTime' meetingInterval timeListLength localTz
+  schedules <- getAvailabilityTextThrow token (emailAddrs ++ roomEmailAddrs) startTime' endTime' intervalMinutes
+  let goodMeetings = getMeetings schedules inPerson nChunks startTime' intervalMinutes localTz
 
   case NE.nonEmpty goodMeetings of
     Nothing -> T.putStrLn "No meetings were available. :("

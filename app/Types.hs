@@ -3,6 +3,8 @@ module Types
     Meeting (..),
     Availability (..),
     Schedule (..),
+    Days (..),
+    Minutes (..),
     getEntity,
     getEmail,
     getShortName,
@@ -18,6 +20,12 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time.Calendar (DayOfWeek (..), dayOfWeek)
 import Data.Time.LocalTime (LocalTime (..), TimeOfDay (..), ZonedTime (..), zonedTimeToUTC)
+
+newtype Minutes = Minutes {unMinutes :: Int}
+  deriving (Eq, Show)
+
+newtype Days = Days {unDays :: Int}
+  deriving (Eq, Show)
 
 data Availability = Free | Tentative | Busy | OutOfOffice | WorkingElsewhere
   deriving (Eq, Show)
