@@ -6,7 +6,6 @@ module Types
     getEntity,
     getEmail,
     getShortName,
-    toSchedule,
     isPerson,
     allRooms,
     isMeetingGood,
@@ -22,18 +21,6 @@ import Data.Time.LocalTime (LocalTime (..), TimeOfDay (..), ZonedTime (..), zone
 
 data Availability = Free | Tentative | Busy | OutOfOffice | WorkingElsewhere
   deriving (Eq, Show)
-
-parseAvailabilityText :: Text -> [Availability]
-parseAvailabilityText = map parseChar . T.unpack
-  where
-    parseChar :: Char -> Availability
-    parseChar c = case c of
-      '0' -> Free
-      '1' -> Tentative
-      '2' -> Busy
-      '3' -> OutOfOffice
-      '4' -> WorkingElsewhere
-      _ -> error $ "unexpected character returned by MS Graph API: " ++ [c]
 
 data RoomLocation = FirstFloor | SecondFloor | FourthFloor deriving (Show, Eq, Ord)
 
@@ -94,13 +81,6 @@ getEntity email = case M.lookup email allRooms of
 getEmail :: Entity -> Text
 getEmail (Person e) = e
 getEmail (Room _ _ e) = e
-
-toSchedule :: (Text, Text) -> Schedule
-toSchedule t =
-  Schedule
-    { entity = getEntity (fst t),
-      schedule = parseAvailabilityText (snd t)
-    }
 
 data Meeting = Meeting
   { startTime :: ZonedTime,

@@ -1,4 +1,4 @@
-module Print (prettyPrint, infoPrint) where
+module Print (prettyPrint, infoPrint, prettyThrow) where
 
 import Control.Monad (forM_)
 import Data.List (nub, sort, transpose)
@@ -10,6 +10,8 @@ import Data.Time.Calendar (Day, dayOfWeek, toGregorian)
 import qualified Data.Time.Calendar as C
 import Data.Time.LocalTime (LocalTime (..), TimeOfDay (..), ZonedTime (..))
 import System.Console.ANSI
+import System.Exit (exitFailure)
+import System.IO (stderr)
 import Types (Meeting (..), getEmail, getShortName)
 
 tshow :: (Show a) => a -> Text
@@ -136,9 +138,8 @@ prettyPrint ms = do
         mapM_ (uncurry printRowNoFirst) (zip styles (map makeMeetingRow gs))
   T.putStrLn bottomSepRow
 
-infoPrint :: [Meeting] -> Int -> IO ()
-infoPrint [] _ = putStrLn "No meetings are available."
-infoPrint (m : _) inPerson =
+infoPrint :: Meeting -> Int -> IO ()
+infoPrint m inPerson =
   let bold = styleText [SetConsoleIntensity BoldIntensity]
       showMeetingBasic = do
         T.putStrLn
@@ -162,3 +163,8 @@ infoPrint (m : _) inPerson =
         (_, 0) -> showMeetingBasic
         ([], _) -> showMeetingBasic
         (r : _, _) -> showMeetingWithRoom r
+
+prettyThrow :: Text -> IO a
+prettyThrow t = do
+  T.hPutStrLn stderr (styleText [SetColor Foreground Vivid Red] t)
+  exitFailure

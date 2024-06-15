@@ -36,3 +36,10 @@ gracefulDivide numerator denominator = do
             " minute meeting."
           ]
       pure q
+
+partitionTupledEither :: [(a, Either b c)] -> ([(a, c)], [(a, b)])
+partitionTupledEither = foldr f ([], [])
+  where
+    f (a, e) (successes, failures) = case e of
+      Left failure -> (successes, (a, failure) : failures)
+      Right success -> ((a, success) : successes, failures)

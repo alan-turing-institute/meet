@@ -3,26 +3,17 @@
 module Main where
 
 import Args
-import Azure
-import Control.Monad (when)
-import Data.List (partition)
+import Azure (getAvailabilityTextThrow, getTokenThrow)
+import qualified Data.List.NonEmpty as NE
 import qualified Data.Map as M
 import qualified Data.Text.IO as T
 import Data.Time.Calendar (addDays)
 import Data.Time.Clock (diffUTCTime, nominalDiffTimeToSeconds)
 import Data.Time.LocalTime (LocalTime (..), TimeOfDay (..), getCurrentTimeZone, localTimeToUTC)
-import Meetings
+import Meetings (chooseBestMeeting, getMeetings)
 import Print (infoPrint, prettyPrint)
-import System.Exit (exitFailure)
 import Types
 import Utils
-
-partitionEither' :: [(a, Either b c)] -> ([(a, c)], [(a, b)])
-partitionEither' = foldr f ([], [])
-  where
-    f (a, e) (successes, failures) = case e of
-      Left failure -> (successes, (a, failure) : failures)
-      Right success -> ((a, success) : successes, failures)
 
 main :: IO ()
 main = do
@@ -33,6 +24,7 @@ main = do
       searchStartDate = argsStartDate args
       searchSpan = argsTimespan args
       inPerson = argsInPerson args
+  nChunks <- gracefulDivide meetingDuration meetingInterval
 
   startDate' <- case searchStartDate of
     Just d -> pure d
@@ -49,24 +41,13 @@ main = do
       roomIsOk (_, cap, _) = cap >= inPerson
   let roomEmailAddrs = M.keys $ M.filter roomIsOk allRooms
 
-  nChunks <- gracefulDivide meetingDuration meetingInterval -- exits early if duration < interval
-  eitherToken <- getToken
-  case eitherToken of
-    Left err -> print err >> exitFailure
-    Right token -> do
-      strings <- getAvailabilityText token (emailAddrs ++ roomEmailAddrs) startTime' endTime' meetingInterval
-      let (successStrings, failureStrings) = partitionEither' strings
-      when (not $ null failureStrings) $ do
-        T.putStrLn "Failed to get availability for the following email addresses. Check if they exist:"
-        mapM_ (\(email, message) -> T.putStrLn $ " - " <> email <> " (Message: " <> message <> ")") failureStrings
-        exitFailure
-      let schedules = map toSchedule successStrings
-          (personSchedules, roomSchedules) = partition isPerson schedules
-          relativeMeetings = findRelativeMeetings personSchedules nChunks
-          relativeMeetingsWithRooms = map (addRoomsToMeeting roomSchedules) relativeMeetings
-          timeList = indicesToTimes startTime' meetingInterval timeListLength
-          meetings = map (absolutiseMeetings timeList localTz) relativeMeetingsWithRooms
-          goodMeetings = filter (isMeetingGood inPerson) meetings -- enforce working hours :)
+  token <- getTokenThrow
+  schedules <- getAvailabilityTextThrow token (emailAddrs ++ roomEmailAddrs) startTime' endTime' meetingInterval
+  let goodMeetings = getMeetings schedules inPerson nChunks startTime' meetingInterval timeListLength localTz
+
+  case NE.nonEmpty goodMeetings of
+    Nothing -> T.putStrLn "No meetings were available. :("
+    Just ms ->
       if argsFeelingLucky args
-        then infoPrint (take 3 $ chooseTopMeetings goodMeetings) inPerson
+        then infoPrint (chooseBestMeeting ms) inPerson
         else prettyPrint goodMeetings

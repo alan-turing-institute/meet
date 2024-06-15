@@ -1,8 +1,10 @@
-module Meetings where
+module Meetings (chooseBestMeeting, getMeetings) where
 
-import Data.List (sortOn, transpose)
-import Data.Time.Clock
-import Data.Time.LocalTime (TimeZone, utcToZonedTime)
+import Data.Foldable1 (maximumBy)
+import Data.List (findIndices, partition, transpose)
+import Data.List.NonEmpty (NonEmpty)
+import Data.Time.Clock (NominalDiffTime, UTCTime (..), addUTCTime, secondsToNominalDiffTime)
+import Data.Time.LocalTime (TimeZone, utcToZonedTime, zonedTimeToUTC)
 import Types
 
 data RelativeMeeting = RelativeMeeting
@@ -12,27 +14,19 @@ data RelativeMeeting = RelativeMeeting
   }
   deriving (Eq, Show)
 
--- window 2 [1, 2, 3, 4] = [[1, 2], [2, 3], [3, 4]]
+-- makeWindows 2 [1, 2, 3, 4] = [[1, 2], [2, 3], [3, 4]]
+-- makeWindows 3 [1, 2, 3, 4] = [[1, 2, 3], [2, 3, 4]]
 makeWindows :: Int -> [a] -> [[a]]
 makeWindows n xs =
   if n > length xs
     then []
-    else take n xs : makeWindows n (tail xs)
+    else take n xs : makeWindows n (drop 1 xs)
 
 isAllAvailable :: [[Availability]] -> Bool
 isAllAvailable = all (all (== Free))
 
 getAvailabilityWindows :: [Schedule] -> Int -> [[[Availability]]]
 getAvailabilityWindows schs n = makeWindows n (transpose (map schedule schs))
-
-findRelativeMeetings :: [Schedule] -> Int -> [RelativeMeeting]
-findRelativeMeetings schs n =
-  let windows = getAvailabilityWindows schs n
-      windowAvailabilities = map isAllAvailable windows
-      indicesAndAvailabilities = zip [0 ..] windowAvailabilities
-      indicesWhereTrue = map fst (filter snd indicesAndAvailabilities)
-      es = map entity schs
-   in map (makeRelativeMeeting n es) indicesWhereTrue
 
 makeRelativeMeeting :: Int -> [Entity] -> Int -> RelativeMeeting
 makeRelativeMeeting n es index =
@@ -41,6 +35,13 @@ makeRelativeMeeting n es index =
       endIndex = index + n,
       relPeople = es
     }
+
+findRelativeMeetings :: [Schedule] -> Int -> [RelativeMeeting]
+findRelativeMeetings schs n =
+  let windows = getAvailabilityWindows schs n
+      indicesWhereTrue = findIndices isAllAvailable windows
+      es = map entity schs
+   in map (makeRelativeMeeting n es) indicesWhereTrue
 
 intSecondsToNDT :: Int -> NominalDiffTime
 intSecondsToNDT = secondsToNominalDiffTime . fromIntegral
@@ -62,8 +63,7 @@ absolutiseMeetings times tz rmwr =
 
 isRoomAvailable :: Int -> Int -> Schedule -> Bool
 isRoomAvailable start end sch =
-  let period = take (end - start) $ drop start $ schedule sch
-   in all (== Free) period
+  all (== Free) . take (end - start) . drop start $ schedule sch
 
 findMeetingRooms :: [Schedule] -> RelativeMeeting -> [Entity]
 findMeetingRooms rschedules m =
@@ -78,20 +78,33 @@ data RelativeMeetingWithRooms = RelativeMeetingWithRooms
 addRoomsToMeeting :: [Schedule] -> RelativeMeeting -> RelativeMeetingWithRooms
 addRoomsToMeeting rSchedules rm' = RelativeMeetingWithRooms rm' (findMeetingRooms rSchedules rm')
 
-roomSizeDiff :: Int -> Entity -> Int
-roomSizeDiff n r = abs (capacity r - n)
-
-meetingRank :: Meeting -> Int
-meetingRank m = case length (people m) of
-  0 -> 0 -- Nobody available to meet :(
+-- | Ranks the 'quality' of a meeting, with lower numbers being better.
+meetingScore :: Meeting -> Int
+meetingScore m = case length (people m) of
+  0 -> 0
   l -> case rooms m of
     [] -> 10000
     rs -> minimum $ map (roomSizeDiff l) rs
+      where
+        -- How far away a room's capacity is from the number of people who need it
+        roomSizeDiff :: Int -> Entity -> Int
+        roomSizeDiff n r = abs (capacity r - n)
 
-chooseTopMeetings :: [Meeting] -> [Meeting]
-chooseTopMeetings = sortOn meetingRank
+-- | Compare two meetings. The meeting with the lower score is placed first.
+-- Ties are broken by start time (i.e. earlier is better).
+compareMeeting :: Meeting -> Meeting -> Ordering
+compareMeeting m1 m2 = case meetingScore m1 `compare` meetingScore m2 of
+  EQ -> zonedTimeToUTC (startTime m1) `compare` zonedTimeToUTC (startTime m2)
+  x -> x
 
--- chooseTopMeetings n meets =
+chooseBestMeeting :: NonEmpty Meeting -> Meeting
+chooseBestMeeting ms = maximumBy compareMeeting ms
 
--- sortBy
---   first: check if you can get a meeting room ~ numPeople
+getMeetings :: [Schedule] -> Int -> Int -> UTCTime -> Int -> Int -> TimeZone -> [Meeting]
+getMeetings schedules inPerson nChunks startTime' meetingInterval timeListLength localTz =
+  let (personSchedules, roomSchedules) = partition isPerson schedules
+      relativeMeetings = findRelativeMeetings personSchedules nChunks
+      relativeMeetingsWithRooms = map (addRoomsToMeeting roomSchedules) relativeMeetings
+      timeList = indicesToTimes startTime' meetingInterval timeListLength
+      meetings = map (absolutiseMeetings timeList localTz) relativeMeetingsWithRooms
+   in filter (isMeetingGood inPerson) meetings

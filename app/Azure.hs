@@ -3,13 +3,14 @@
 
 module Azure
   ( getToken,
-    printAuthenticatedUserName,
+    getTokenThrow,
     getAvailabilityText,
+    getAvailabilityTextThrow,
   )
 where
 
 import Control.Concurrent (threadDelay)
-import Control.Monad (void)
+import Control.Monad (void, when)
 import Data.Aeson
 import Data.Aeson.Types
 import Data.Text (Text)
@@ -21,7 +22,10 @@ import Data.Time.Format.ISO8601
 import qualified Data.Vector as V
 import GHC.Generics
 import Network.HTTP.Req
+import Print (prettyThrow)
 import System.Process (spawnCommand)
+import Types (Availability (..), Schedule (..), getEntity)
+import Utils (partitionTupledEither)
 
 newtype Token = Token {_unToken :: Text}
 
@@ -121,12 +125,13 @@ getToken = do
         Left err -> Left $ T.pack $ show err
         Right token -> Right token
 
-printAuthenticatedUserName :: Token -> IO ()
-printAuthenticatedUserName token = do
-  let profile_url = https "graph.microsoft.com" /: "v1.0" /: "me"
-  resp <- runReq defaultHttpConfig $ do
-    req GET profile_url NoReqBody jsonResponse (withToken token)
-  print (responseBody resp :: Value)
+getTokenThrow :: IO Token
+getTokenThrow = do
+  eitherToken <- getToken
+  case eitherToken of
+    Left err -> do
+      prettyThrow err
+    Right token -> pure token
 
 data DateTimeTimeZone = DateTimeTimeZone
   { dateTime :: Text,
@@ -182,3 +187,38 @@ getAvailabilityText token emails start end itvl = do
   case parseEither parser (responseBody resp) of
     Left err -> error err
     Right entries -> pure entries
+
+parseAvailabilityText :: Text -> [Availability]
+parseAvailabilityText = map parseChar . T.unpack
+  where
+    parseChar :: Char -> Availability
+    parseChar c = case c of
+      '0' -> Free
+      '1' -> Tentative
+      '2' -> Busy
+      '3' -> OutOfOffice
+      '4' -> WorkingElsewhere
+      _ -> error $ "unexpected character returned by MS Graph API: " ++ [c]
+
+toSchedule :: (Text, Text) -> Schedule
+toSchedule t =
+  Schedule
+    { entity = getEntity (fst t),
+      schedule = parseAvailabilityText (snd t)
+    }
+
+getAvailabilityTextThrow :: Token -> [Text] -> UTCTime -> UTCTime -> Int -> IO [Schedule]
+getAvailabilityTextThrow token emails start end itvl = do
+  strings <- getAvailabilityText token emails start end itvl
+  let (successStrings, failureStrings) = partitionTupledEither strings
+  -- Throw now if any of the emails failed
+  when (not $ null failureStrings) $ do
+    let errMsg =
+          T.intercalate
+            "\n"
+            ( "Failed to get availability for the following email addresses."
+                : map (\(email, message) -> " - " <> email <> " (Message: " <> message <> ")") failureStrings
+            )
+    prettyThrow errMsg
+  -- Return the parsed schedules
+  pure $ map toSchedule successStrings
