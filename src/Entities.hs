@@ -4,11 +4,19 @@ module Entities
     HasSchedule,
     Person (..),
     Room (..),
+    Minutes (..),
+    Days (..),
     allRooms,
   )
 where
 
 import Data.Text (Text)
+
+newtype Minutes = Minutes {unMinutes :: Int}
+  deriving (Eq, Show)
+
+newtype Days = Days {unDays :: Int}
+  deriving (Eq, Show)
 
 data Availability = Free | Tentative | Busy | OutOfOffice | WorkingElsewhere
   deriving (Eq, Show)

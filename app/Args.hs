@@ -1,16 +1,10 @@
-module Args (Days (..), Minutes (..), Args (..), getArgs) where
+module Args (Args (..), getArgs) where
 
 import qualified Data.Text as T
 import Data.Time.Calendar (Day)
-import Entities (Person (..))
+import Entities (Person (..), Minutes (..), Days (..))
 import Options.Applicative
 import Text.Read (readMaybe)
-
-newtype Minutes = Minutes {unMinutes :: Int}
-  deriving (Eq, Show)
-
-newtype Days = Days {unDays :: Int}
-  deriving (Eq, Show)
 
 data Args = Args
   { argsEmails :: [Person],

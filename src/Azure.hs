@@ -8,7 +8,6 @@ module Azure
   )
 where
 
-import Args (Minutes (..))
 import Control.Concurrent (threadDelay)
 import Control.Monad (void, when)
 import Data.Aeson
@@ -23,7 +22,7 @@ import qualified Data.Text.IO as T
 import Data.Time.Clock (UTCTime)
 import Data.Time.Format.ISO8601 (iso8601Show)
 import qualified Data.Vector as V
-import Entities (Availability (..), HasSchedule, Person (..), Room (..), Schedule (..))
+import Entities (Availability (..), HasSchedule, Minutes (..), Person (..), Room (..), Schedule (..))
 import GHC.Generics
 import Network.HTTP.Req
 import Print (prettyThrow)

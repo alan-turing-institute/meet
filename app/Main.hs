@@ -2,14 +2,14 @@
 
 module Main where
 
-import Args (Args (..), getArgs, unDays)
+import Args (Args (..), getArgs)
 import Azure (fetchSchedules, getToken)
 import Control.Monad (when)
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Text.IO as T
 import Data.Time.Calendar (addDays)
 import Data.Time.LocalTime (LocalTime (..), TimeOfDay (..), getCurrentTimeZone, localTimeToUTC)
-import Entities (Room (..), allRooms)
+import Entities (Days (..), Room (..), allRooms)
 import Meetings (chooseBestMeeting, getMeetings)
 import Print (infoPrint, prettyPrint)
 import System.Exit (exitSuccess)

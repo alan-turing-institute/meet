@@ -1,6 +1,6 @@
 module Meetings (Meeting (..), chooseBestMeeting, getMeetings) where
 
-import Args (Minutes (..))
+import Entities (Minutes (..))
 import Data.Foldable1 (maximumBy)
 import Data.List (findIndices, transpose)
 import Data.List.NonEmpty (NonEmpty)

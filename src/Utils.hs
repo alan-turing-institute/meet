@@ -1,6 +1,6 @@
 module Utils where
 
-import Args (Minutes (..))
+import Entities (Minutes (..))
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time.Clock (getCurrentTime)

@@ -1,28 +1,51 @@
-cabal-version:      3.0
-name:               meet
-version:            0.1.0.4
+cabal-version:   3.0
+name:            meet
+version:         0.1.0.4
+license:         MIT
+license-file:    LICENSE
+maintainer:      hut23@turing.ac.uk
+author:          Research Engineering @ The Alan Turing Institute
+synopsis:        Find meeting times and rooms at the Turing
+description:
+    `meet` is a command-line tool for finding available meeting times at the Turing. It can additionally filter by room availability and capacity.
 
-synopsis: Find meeting times and rooms at the Turing
-description: `meet` is a command-line tool for finding available meeting times at the Turing. It can additionally filter by room availability and capacity.
-license:            MIT
-license-file:       LICENSE
-author:             Research Engineering @ The Alan Turing Institute
-maintainer:         hut23@turing.ac.uk
-category:           Math
-build-type:         Simple
-extra-doc-files:    CHANGELOG.md
+category:        Math
+build-type:      Simple
+extra-doc-files: CHANGELOG.md
 
-common warnings
-    ghc-options: -Wall
+library
+    exposed-modules:
+        Azure
+        Entities
+        Meetings
+        Print
+        Utils
+
+    hs-source-dirs:     src
+    default-language:   Haskell2010
+    default-extensions: OverloadedStrings ScopedTypeVariables
+    build-depends:
+        base ^>=4.17 || ^>=4.18 || ^>=4.19,
+        time,
+        req,
+        text,
+        aeson,
+        ansi-terminal,
+        process,
+        vector,
+        containers,
+        extra
 
 executable meet
-    import:             warnings
     main-is:            Main.hs
-    other-modules:      Args, Azure, Entities, Meetings, Print, Utils
-    default-extensions: OverloadedStrings, ScopedTypeVariables
-    build-depends:      base ^>=4.17 || ^>=4.18 || ^>=4.19,
-                        time, req, text, aeson,
-                        process, vector, optparse-applicative,
-                        containers, extra, ansi-terminal
     hs-source-dirs:     app
+    other-modules:      Args
     default-language:   Haskell2010
+    default-extensions: OverloadedStrings ScopedTypeVariables
+    ghc-options:        -Wall
+    build-depends:
+        base ^>=4.17 || ^>=4.18 || ^>=4.19,
+        meet,
+        time,
+        text,
+        optparse-applicative
