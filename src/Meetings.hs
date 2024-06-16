@@ -1,4 +1,4 @@
-module Meetings (Meeting (..), chooseBestMeeting, getMeetings) where
+module Meetings (Meeting (..), chooseBestMeeting, getMeetings, getRoomMeetings) where
 
 import Entities (Minutes (..))
 import Data.Foldable1 (maximumBy)
@@ -144,6 +144,13 @@ absolutiseMeetings startTime' intervalMinutes tz rmwr =
 getMeetings :: [Schedule Person] -> [Schedule Room] -> Int -> Int -> UTCTime -> Minutes -> TimeZone -> [Meeting]
 getMeetings personSchedules roomSchedules inPerson nChunks startTime' intervalMinutes localTz =
   let relativeMeetings = findRelativeMeetings personSchedules nChunks
+      relativeMeetingsWithRooms = map (addRoomsToMeeting roomSchedules) relativeMeetings
+      meetings = map (absolutiseMeetings startTime' intervalMinutes localTz) relativeMeetingsWithRooms
+   in filter (isMeetingGood inPerson) meetings
+
+getRoomMeetings :: [Schedule Room] -> Int -> Int -> UTCTime -> Minutes -> TimeZone -> [Meeting]
+getRoomMeetings roomSchedules inPerson totalChunks startTime' intervalMinutes localTz =
+  let relativeMeetings = map (makeRelativeMeeting 1 []) [0 .. totalChunks - 1]
       relativeMeetingsWithRooms = map (addRoomsToMeeting roomSchedules) relativeMeetings
       meetings = map (absolutiseMeetings startTime' intervalMinutes localTz) relativeMeetingsWithRooms
    in filter (isMeetingGood inPerson) meetings
