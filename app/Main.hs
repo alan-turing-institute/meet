@@ -2,22 +2,21 @@
 
 module Main where
 
-import Args
-import Azure (getAvailabilityTextThrow, getTokenThrow)
+import Args (Args (..), getArgs, unDays)
+import Azure (fetchSchedules, getTokenThrow)
 import qualified Data.List.NonEmpty as NE
-import qualified Data.Map as M
 import qualified Data.Text.IO as T
 import Data.Time.Calendar (addDays)
 import Data.Time.LocalTime (LocalTime (..), TimeOfDay (..), getCurrentTimeZone, localTimeToUTC)
+import Entities (Room (..), allRooms)
 import Meetings (chooseBestMeeting, getMeetings)
 import Print (infoPrint, prettyPrint)
-import Types
 import Utils
 
 main :: IO ()
 main = do
   args <- getArgs
-  let emailAddrs = argsEmails args
+  let ppl = argsEmails args
       intervalMinutes = argsInterval args
       durationMinutes = argsDuration args
       searchStartDate = argsStartDate args
@@ -34,13 +33,13 @@ main = do
   let endDate' = addDays (fromIntegral $ unDays searchSpanDays - 1) startDate'
       endTime' = localTimeToUTC localTz $ LocalTime endDate' (TimeOfDay 17 30 0)
 
-  let roomIsOk :: (a, Int, b) -> Bool
-      roomIsOk (_, cap, _) = cap >= inPerson
-  let roomEmailAddrs = M.keys $ M.filter roomIsOk allRooms
+  let roomIsOk :: Room -> Bool
+      roomIsOk r = capacity r >= inPerson
+      okRooms = filter roomIsOk allRooms
 
   token <- getTokenThrow
-  schedules <- getAvailabilityTextThrow token (emailAddrs ++ roomEmailAddrs) startTime' endTime' intervalMinutes
-  let goodMeetings = getMeetings schedules inPerson nChunks startTime' intervalMinutes localTz
+  (personSchs, roomSchs) <- fetchSchedules token ppl okRooms startTime' endTime' intervalMinutes
+  let goodMeetings = getMeetings personSchs roomSchs inPerson nChunks startTime' intervalMinutes localTz
 
   case NE.nonEmpty goodMeetings of
     Nothing -> T.putStrLn "No meetings were available. :("

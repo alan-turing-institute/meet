@@ -5,26 +5,30 @@ module Azure
   ( getToken,
     getTokenThrow,
     getAvailabilityText,
-    getAvailabilityTextThrow,
+    fetchSchedules,
   )
 where
 
+import Args (Minutes (..))
 import Control.Concurrent (threadDelay)
 import Control.Monad (void, when)
 import Data.Aeson
 import Data.Aeson.Types
+import Data.Bifunctor (first)
+import Data.Either (partitionEithers)
+import Data.List (find)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as T
-import Data.Time.Clock
-import Data.Time.Format.ISO8601
+import Data.Time.Clock (UTCTime)
+import Data.Time.Format.ISO8601 (iso8601Show)
 import qualified Data.Vector as V
+import Entities (Availability (..), HasSchedule, Person (..), Room (..), Schedule (..))
 import GHC.Generics
 import Network.HTTP.Req
 import Print (prettyThrow)
 import System.Process (spawnCommand)
-import Types (Availability (..), Schedule (..), Minutes (..), getEntity)
 import Utils (partitionTupledEither)
 
 newtype Token = Token {_unToken :: Text}
@@ -158,13 +162,22 @@ data SchedulePostBody = SchedulePostBody
 
 instance ToJSON SchedulePostBody
 
-getAvailabilityText :: Token -> [Text] -> UTCTime -> UTCTime -> Minutes -> IO [(Text, Either Text Text)]
-getAvailabilityText token emails start end itvl = do
+getAvailabilityText ::
+  Token ->
+  [Person] ->
+  [Room] ->
+  UTCTime ->
+  UTCTime ->
+  Minutes ->
+  IO ([Either (Person, Text) (Schedule Person)], [Either (Room, Text) (Schedule Room)])
+getAvailabilityText token ppl rooms start end itvl = do
+  let peopleWithEmails = zip (map personEmail ppl) ppl
+  let roomWithEmails = zip (map roomEmail rooms) rooms
   resp <- runReq defaultHttpConfig $ do
     let calendarUrl = https "graph.microsoft.com" /: "v1.0" /: "me" /: "calendar" /: "getSchedule"
     let postBody =
           SchedulePostBody
-            { schedules = emails,
+            { schedules = map fst peopleWithEmails ++ map fst roomWithEmails,
               startTime = dttzFromUTCTime start,
               endTime = dttzFromUTCTime end,
               availabilityViewInterval = Just (unMinutes itvl)
@@ -185,40 +198,49 @@ getAvailabilityText token emails start end itvl = do
         value <- o .: "value"
         V.toList <$> withArray "value" (mapM entryParser) value
   case parseEither parser (responseBody resp) of
-    Left err -> error err
-    Right entries -> pure entries
+    Left err -> prettyThrow $ T.pack err
+    Right entries -> do
+      -- Need to check that the Azure response contains all the same entities
+      -- that we queried for.
+      let checkEntry :: (HasSchedule a) => (Text, a) -> Either (a, Text) (Schedule a)
+          checkEntry (email, ent) = first ((,) ent) $ case find ((== email) . fst) entries of
+            Just (_, availT) -> Schedule ent <$> (availT >>= parseAvailabilityText)
+            Nothing -> Left $ "MS Graph API did not return any data for this email. This should not happen."
+      pure $ (map checkEntry peopleWithEmails, map checkEntry roomWithEmails)
 
-parseAvailabilityText :: Text -> [Availability]
-parseAvailabilityText = map parseChar . T.unpack
+parseAvailabilityText :: Text -> Either Text [Availability]
+parseAvailabilityText = traverse parseChar . T.unpack
   where
-    parseChar :: Char -> Availability
+    parseChar :: Char -> Either Text Availability
     parseChar c = case c of
-      '0' -> Free
-      '1' -> Tentative
-      '2' -> Busy
-      '3' -> OutOfOffice
-      '4' -> WorkingElsewhere
-      _ -> error $ "unexpected character returned by MS Graph API: " ++ [c]
+      '0' -> Right Free
+      '1' -> Right Tentative
+      '2' -> Right Busy
+      '3' -> Right OutOfOffice
+      '4' -> Right WorkingElsewhere
+      _ -> Left $ T.snoc "unexpected character returned by MS Graph API: " c
 
-toSchedule :: (Text, Text) -> Schedule
-toSchedule t =
-  Schedule
-    { entity = getEntity (fst t),
-      schedule = parseAvailabilityText (snd t)
-    }
-
-getAvailabilityTextThrow :: Token -> [Text] -> UTCTime -> UTCTime -> Minutes -> IO [Schedule]
-getAvailabilityTextThrow token emails start end itvl = do
-  strings <- getAvailabilityText token emails start end itvl
-  let (successStrings, failureStrings) = partitionTupledEither strings
+fetchSchedules ::
+  Token ->
+  [Person] ->
+  [Room] ->
+  UTCTime ->
+  UTCTime ->
+  Minutes ->
+  IO ([Schedule Person], [Schedule Room])
+fetchSchedules token ppl rooms start end itvl = do
+  (personEitherSchedules, roomEitherSchedules) <- getAvailabilityText token ppl rooms start end itvl
+  let (failurePeople, successPeople) = partitionEithers personEitherSchedules
+      (failureRooms, successRooms) = partitionEithers roomEitherSchedules
+      failures = map (first personEmail) failurePeople ++ map (first roomEmail) failureRooms
   -- Throw now if any of the emails failed
-  when (not $ null failureStrings) $ do
+  when (not $ null failures) $ do
     let errMsg =
           T.intercalate
             "\n"
             ( "Failed to get availability for the following email addresses."
-                : map (\(email, message) -> " - " <> email <> " (Message: " <> message <> ")") failureStrings
+                : map (\(email, message) -> " - " <> email <> " (Message: " <> message <> ")") failures
             )
     prettyThrow errMsg
   -- Return the parsed schedules
-  pure $ map toSchedule successStrings
+  pure (successPeople, successRooms)

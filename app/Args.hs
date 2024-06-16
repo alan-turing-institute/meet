@@ -1,14 +1,19 @@
-module Args (Args (..), getArgs) where
+module Args (Days (..), Minutes (..), Args (..), getArgs) where
 
-import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time.Calendar (Day)
+import Entities (Person (..))
 import Options.Applicative
 import Text.Read (readMaybe)
-import Types (Days (..), Minutes (..))
+
+newtype Minutes = Minutes {unMinutes :: Int}
+  deriving (Eq, Show)
+
+newtype Days = Days {unDays :: Int}
+  deriving (Eq, Show)
 
 data Args = Args
-  { argsEmails :: [Text],
+  { argsEmails :: [Person],
     argsInterval :: Minutes,
     argsDuration :: Minutes,
     argsStartDate :: Maybe Day,
@@ -21,7 +26,7 @@ data Args = Args
 parseArgs :: Parser Args
 parseArgs =
   Args
-    <$> some (argument readEmail (metavar "EMAILS..." <> help "Email addresses of the people you want to stalk. If you don't include @turing.ac.uk, it will be appended for you."))
+    <$> some (argument readPerson (metavar "EMAILS..." <> help "Email addresses of the people you want to stalk. If you don't include @turing.ac.uk, it will be appended for you."))
     <*> option
       (Minutes <$> auto)
       ( long "interval"
@@ -76,13 +81,14 @@ readDate = do
     Just d -> pure d
     Nothing -> error "Date must be specified in YYYY-MM-DD format"
 
-readEmail :: ReadM Text
-readEmail = do
+readPerson :: ReadM Person
+readPerson = do
   val <- str
   pure $
-    if '@' `T.elem` val
-      then val
-      else val <> "@turing.ac.uk"
+    Person $
+      if '@' `T.elem` val
+        then val
+        else val <> "@turing.ac.uk"
 
 opts :: ParserInfo Args
 opts = info (parseArgs <**> helper) (fullDesc <> progDesc "Schedule a meeting with the given emails." <> header "meet - a tool to schedule a meeting")

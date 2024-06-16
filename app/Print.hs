@@ -9,10 +9,11 @@ import qualified Data.Text.IO as T
 import Data.Time.Calendar (Day, dayOfWeek, toGregorian)
 import qualified Data.Time.Calendar as C
 import Data.Time.LocalTime (LocalTime (..), TimeOfDay (..), ZonedTime (..))
+import Entities (Room (..))
+import Meetings (Meeting (..))
 import System.Console.ANSI
 import System.Exit (exitFailure)
 import System.IO (stderr)
-import Types (Meeting (..), getEmail, getShortName)
 
 tshow :: (Show a) => a -> Text
 tshow = T.pack . show
@@ -81,7 +82,7 @@ prettyPrint ms = do
       headerRow =
         "Date"
           : "Time"
-          : map getShortName relevantMeetingRooms
+          : map roomShortName relevantMeetingRooms
       makeMeetingRow m =
         [ showDateWithDay . localDay . zonedTimeToLocalTime . startTime $ m,
           showTime (startTime m) (endTime m)
@@ -157,7 +158,7 @@ infoPrint m inPerson =
               <> "\n - at "
               <> bold (showTime (startTime m) (endTime m))
               <> "\n - in room "
-              <> bold (getEmail r)
+              <> bold (roomEmail r)
           )
    in case (rooms m, inPerson) of
         (_, 0) -> showMeetingBasic

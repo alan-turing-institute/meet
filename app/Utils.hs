@@ -1,6 +1,6 @@
 module Utils where
 
-import Types (Minutes (..))
+import Args (Minutes (..))
 import Data.Time.Clock (getCurrentTime)
 import Data.Time.LocalTime (LocalTime (..), getCurrentTimeZone, utcToLocalTime)
 
@@ -38,9 +38,9 @@ gracefulDivide (Minutes numerator) (Minutes denominator) = do
           ]
       pure q
 
-partitionTupledEither :: [(a, Either b c)] -> ([(a, c)], [(a, b)])
-partitionTupledEither = foldr f ([], [])
+partitionTupledEither :: [(a, Either b c)] -> ([(a, b)], [(a, c)])
+partitionTupledEither = foldr acc ([], [])
   where
-    f (a, e) (successes, failures) = case e of
-      Left failure -> (successes, (a, failure) : failures)
-      Right success -> ((a, success) : successes, failures)
+    acc (a, e) (fs, ss) = case e of
+      Left f -> ((a, f) : fs, ss)
+      Right s -> (fs, (a, s) : ss)

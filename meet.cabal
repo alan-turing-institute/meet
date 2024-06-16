@@ -16,13 +16,13 @@ common warnings
     ghc-options: -Wall
 
 executable meet
-    import:           warnings
-    main-is:          Main.hs
-    other-modules:    Azure, Types, Meetings, Args, Utils, Print
+    import:             warnings
+    main-is:            Main.hs
+    other-modules:      Args, Azure, Entities, Meetings, Print, Utils
     default-extensions: OverloadedStrings, ScopedTypeVariables
-    build-depends:  base ^>=4.17 || ^>=4.18 || ^>=4.19,
-                    time, req, text, aeson,
-                    process, vector, optparse-applicative,
-                    containers, extra, ansi-terminal
-    hs-source-dirs:   app
-    default-language: Haskell2010
+    build-depends:      base ^>=4.17 || ^>=4.18 || ^>=4.19,
+                        time, req, text, aeson,
+                        process, vector, optparse-applicative,
+                        containers, extra, ansi-terminal
+    hs-source-dirs:     app
+    default-language:   Haskell2010
