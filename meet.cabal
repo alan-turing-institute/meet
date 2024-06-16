@@ -34,7 +34,8 @@ library
         process,
         vector,
         containers,
-        extra
+        extra,
+        foldable1-classes-compat
 
 executable meet
     main-is:            Main.hs
