@@ -1,13 +1,13 @@
 cabal-version:   3.0
 name:            meet
-version:         0.1.0.4
+version:         0.2.0.0
 license:         MIT
 license-file:    LICENSE
 maintainer:      hut23@turing.ac.uk
 author:          Research Engineering @ The Alan Turing Institute
 synopsis:        Find meeting times and rooms at the Turing
 description:
-    `meet` is a command-line tool for finding available meeting times at the Turing. It can additionally filter by room availability and capacity.
+    Command-line tools for finding available meeting times and rooms at the Turing. It can additionally filter by room availability and capacity.
 
 category:        Math
 build-type:      Simple
