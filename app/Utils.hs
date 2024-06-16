@@ -1,8 +1,14 @@
 module Utils where
 
 import Args (Minutes (..))
+import Data.Text (Text)
+import qualified Data.Text as T
 import Data.Time.Clock (getCurrentTime)
 import Data.Time.LocalTime (LocalTime (..), getCurrentTimeZone, utcToLocalTime)
+import Print (prettyThrow, prettyWarn)
+
+tshow :: (Show a) => a -> Text
+tshow = T.pack . show
 
 getCurrentLocalTime :: IO LocalTime
 getCurrentLocalTime = do
@@ -14,26 +20,24 @@ gracefulDivide :: Minutes -> Minutes -> IO Int
 gracefulDivide (Minutes numerator) (Minutes denominator) = do
   case quotRem numerator denominator of
     (0, _) ->
-      error $
-        concat
+      prettyThrow $
+        T.concat
           [ "Meeting duration of ",
-            show numerator,
+            tshow numerator,
             " minutes is shorter than the meeting interval of ",
-            show denominator,
+            tshow denominator,
             " minutes."
           ]
     (q, 0) -> pure q
-    (q, r) -> do
-      putStrLn $
-        concat
-          [ "WARNING: Meeting duration of ",
-            show numerator,
-            " minutes divides by ",
-            show denominator,
-            " with ",
-            show r,
-            " minutes remaining, so we will book a ",
-            show (q * denominator),
-            " minute meeting."
+    (q, _) -> do
+      prettyWarn $
+        T.concat
+          [ "Meeting duration of ",
+            tshow numerator,
+            " minutes is not a multiple of the meeting interval of ",
+            tshow denominator,
+            " minutes. Proceeding with a ",
+            tshow (q * denominator),
+            "-minute meeting instead."
           ]
       pure q

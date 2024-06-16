@@ -27,7 +27,8 @@ import Entities (Availability (..), HasSchedule, Person (..), Room (..), Schedul
 import GHC.Generics
 import Network.HTTP.Req
 import Print (prettyThrow)
-import System.Process (spawnCommand)
+import System.Exit (ExitCode (..))
+import System.Process (readProcessWithExitCode, spawnCommand)
 
 newtype Token = Token {_unToken :: Text}
 
@@ -118,9 +119,11 @@ getToken = do
   case resp of
     Left err -> prettyThrow $ T.pack $ "Failed to parse response from /devicecode: " <> err
     Right deviceCodeResponse -> do
-      T.putStrLn $ "Please visit " <> verificationUrl deviceCodeResponse <> " and enter code " <> userCode deviceCodeResponse <> ". The code has also been copied to your clipboard."
+      (copyExitCode, _, _) <- readProcessWithExitCode "pbcopy" [] (T.unpack $ userCode deviceCodeResponse)
+      T.putStrLn $ "Please visit " <> verificationUrl deviceCodeResponse <> " and enter code " <> userCode deviceCodeResponse <> "."
+      when (copyExitCode == ExitSuccess) $ do
+        T.putStrLn $ "The code has also been copied to your clipboard."
       void $ spawnCommand ("open " <> T.unpack (verificationUrl deviceCodeResponse))
-      void $ spawnCommand ("pbcopy <<< " <> T.unpack (userCode deviceCodeResponse))
 
       eitherToken <- pollForToken (deviceCode deviceCodeResponse)
       case eitherToken of
@@ -228,8 +231,8 @@ fetchSchedules token ppl rooms start end itvl = do
     let errMsg =
           T.intercalate
             "\n"
-            ( "Failed to get availability for the following email addresses."
-                : map (\(email, message) -> " - " <> email <> " (Message: " <> message <> ")") failures
+            ( "Failed to get calendar availability for the following email address(es)."
+                : map (\(email, message) -> "<" <> email <> "> (message: " <> message <> ")") failures
             )
     prettyThrow errMsg
   -- Return the parsed schedules

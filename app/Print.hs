@@ -1,4 +1,4 @@
-module Print (prettyPrint, infoPrint, prettyThrow) where
+module Print (prettyPrint, infoPrint, prettyThrow, prettyWarn) where
 
 import Control.Monad (forM_)
 import Data.List (nub, sort, transpose)
@@ -167,5 +167,17 @@ infoPrint m inPerson =
 
 prettyThrow :: Text -> IO a
 prettyThrow t = do
-  T.hPutStrLn stderr (styleText [SetColor Foreground Vivid Red] t)
+  T.hPutStrLn
+    stderr
+    ( styleText [SetColor Foreground Vivid Red, SetConsoleIntensity BoldIntensity] "Error: "
+        <> styleText [SetColor Foreground Vivid Red] t
+    )
   exitFailure
+
+prettyWarn :: Text -> IO ()
+prettyWarn t = do
+  T.hPutStrLn
+    stderr
+    ( styleText [SetColor Foreground Vivid Yellow, SetConsoleIntensity BoldIntensity] "Warning: "
+        <> styleText [SetColor Foreground Vivid Yellow] t
+    )
