@@ -3,7 +3,6 @@
 
 module Azure
   ( getToken,
-    getTokenThrow,
     getAvailabilityText,
     fetchSchedules,
   )
@@ -29,7 +28,6 @@ import GHC.Generics
 import Network.HTTP.Req
 import Print (prettyThrow)
 import System.Process (spawnCommand)
-import Utils (partitionTupledEither)
 
 newtype Token = Token {_unToken :: Text}
 
@@ -110,7 +108,7 @@ parseDeviceCodeResponse = parseEither . withObject "parseDeviceCodeResponse" $ \
     <*> o .: "interval"
     <*> o .: "message"
 
-getToken :: IO (Either Text Token)
+getToken :: IO Token
 getToken = do
   respJson <- runReq defaultHttpConfig $ do
     let url = https "login.microsoftonline.com" /: rumTenantId /: "oauth2" /: "v2.0" /: "devicecode"
@@ -118,24 +116,16 @@ getToken = do
 
   let resp = parseDeviceCodeResponse (responseBody respJson)
   case resp of
-    Left err -> pure $ Left $ T.pack $ "Failed to parse response from /devicecode: " <> err
+    Left err -> prettyThrow $ T.pack $ "Failed to parse response from /devicecode: " <> err
     Right deviceCodeResponse -> do
       T.putStrLn $ "Please visit " <> verificationUrl deviceCodeResponse <> " and enter code " <> userCode deviceCodeResponse <> ". The code has also been copied to your clipboard."
       void $ spawnCommand ("open " <> T.unpack (verificationUrl deviceCodeResponse))
       void $ spawnCommand ("pbcopy <<< " <> T.unpack (userCode deviceCodeResponse))
 
       eitherToken <- pollForToken (deviceCode deviceCodeResponse)
-      pure $ case eitherToken of
-        Left err -> Left $ T.pack $ show err
-        Right token -> Right token
-
-getTokenThrow :: IO Token
-getTokenThrow = do
-  eitherToken <- getToken
-  case eitherToken of
-    Left err -> do
-      prettyThrow err
-    Right token -> pure token
+      case eitherToken of
+        Left err -> prettyThrow $ T.pack $ show err
+        Right token -> pure token
 
 data DateTimeTimeZone = DateTimeTimeZone
   { dateTime :: Text,

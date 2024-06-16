@@ -37,10 +37,3 @@ gracefulDivide (Minutes numerator) (Minutes denominator) = do
             " minute meeting."
           ]
       pure q
-
-partitionTupledEither :: [(a, Either b c)] -> ([(a, b)], [(a, c)])
-partitionTupledEither = foldr acc ([], [])
-  where
-    acc (a, e) (fs, ss) = case e of
-      Left f -> ((a, f) : fs, ss)
-      Right s -> (fs, (a, s) : ss)
