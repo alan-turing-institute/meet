@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeApplications #-}
 
-module Config (Config (..)) where
+module Config (readConfig, Config (..), Group (..)) where
 
 import Control.Applicative
 import Data.ByteString (ByteString)
@@ -11,8 +11,8 @@ import qualified Data.Yaml as Y
 import Text.RawString.QQ
 
 data Group = Group
-  { name :: Text,
-    emails :: [Text]
+  { groupName :: Text,
+    groupEmails :: [Text]
   }
   deriving (Eq, Show)
 
@@ -31,11 +31,12 @@ instance FromJSON Config where
   parseJSON = Y.withObject "Config" $ \v ->
     Config <$> v .: "groups"
 
-readConfig :: IO (Maybe Config)
-readConfig = do
-  result <- Y.decodeFileEither @Config "~/.meet-config.yaml"
+readConfig :: FilePath -> IO Config
+readConfig cp = do
+  result <- Y.decodeFileEither @Config cp
   case result of
     Left e -> do
       T.putStrLn $ "Error parsing config: " <> pack (show e)
-      return Nothing
-    Right config -> return (Just config)
+      -- Return default (empty for now) config if parsing fails.
+      return Config {groups = []}
+    Right config -> return config

@@ -1,0 +1,5 @@
+groups:
+  - name: Friends
+    emails:
+      - a@turing.ac.uk
+      - b@example.com

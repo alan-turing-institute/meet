@@ -5,17 +5,14 @@ module Main where
 
 import Args (Args (..), getArgs)
 import Azure (fetchSchedules, getToken)
-import Config (Config (..))
+import Config (Config (..), Group (..), readConfig)
 import Control.Applicative
 import Control.Monad (when)
-import Data.ByteString (ByteString)
 import qualified Data.List.NonEmpty as NE
-import Data.Text (Text, pack)
+import Data.Text (isInfixOf, splitOn, toLower)
 import qualified Data.Text.IO as T
 import Data.Time.Calendar (addDays)
 import Data.Time.LocalTime (LocalTime (..), TimeOfDay (..), getCurrentTimeZone, localTimeToUTC)
-import Data.Yaml (FromJSON (..), (.:))
-import qualified Data.Yaml as Y
 import Entities (Days (..), Person (..), Room (..), allRooms)
 import Meetings (chooseBestMeeting, getMeetings)
 import Print (infoPrint, prettyPrint)
@@ -49,22 +46,28 @@ main = do
     T.putStrLn "Perhaps try reducing the number of people who need to be in-person?"
     exitSuccess
 
-  -- Read in the config from ~/.meet-config.yaml
-  case Y.decodeFileEither @Config "~/.meet-config.yaml" of
-    -- Handle the case where the config file is not valid YAML explicitly,
-    -- and tell the compiler it is definitely a Config.
-    -- (this seemed to be needed for the typechecker to be happy)
-    Left e -> T.putStrLn $ "Error parsing config: " <> pack (show e)
-    Right config -> do
-      let groupEmails = concatMap emails $ groups config
-      token <- getToken
-      let ppl' = ppl ++ map Person groupEmails
-      (personSchs, roomSchs) <- fetchSchedules token ppl' okRooms startTime' endTime' intervalMinutes
-      let goodMeetings = getMeetings personSchs roomSchs inPerson nChunks startTime' intervalMinutes localTz
+  config <- readConfig $ argsConfigPath args
+  -- Add group emails to the list of people, but only if that group is specified in the list of people.
+  -- We then create a new list that contains the emails of the groups specified in the list of people.
+  -- This will check if the group name is an infix of the corresponding person entry,
+  -- since "@turing.ac.uk" is appended to the email address if it's not present,
+  -- and then add the email addresses of the group to the list of people.
+  print config
+  let lowercaseEmails = map (toLower . personEmail) ppl
+      validGroups = filter (\g -> any (isInfixOf (toLower (groupName g))) lowercaseEmails) (groups config)
+      validGroupEmails = concatMap groupEmails validGroups
+      validGroupNames = map (toLower . groupName) validGroups
+      ppl' = filter (\p -> any (isInfixOf (toLower (personEmail p))) validGroupNames) ppl ++ map Person validGroupEmails
+  if validGroups /= []
+    then T.putStrLn "Adding emails from the following groups:" >> mapM_ T.putStrLn validGroupNames
+    else T.putStrLn "No groups were specified in the list of people."
+  token <- getToken
+  (personSchs, roomSchs) <- fetchSchedules token ppl' okRooms startTime' endTime' intervalMinutes
+  let goodMeetings = getMeetings personSchs roomSchs inPerson nChunks startTime' intervalMinutes localTz
 
-      case NE.nonEmpty goodMeetings of
-        Nothing -> T.putStrLn "No meetings were available. :("
-        Just ms ->
-          if argsFeelingLucky args
-            then infoPrint (chooseBestMeeting ms) inPerson
-            else prettyPrint goodMeetings
+  case NE.nonEmpty goodMeetings of
+    Nothing -> T.putStrLn "No meetings were available. :("
+    Just ms ->
+      if argsFeelingLucky args
+        then infoPrint (chooseBestMeeting ms) inPerson
+        else prettyPrint goodMeetings

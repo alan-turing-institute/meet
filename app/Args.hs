@@ -2,7 +2,7 @@ module Args (Args (..), getArgs) where
 
 import qualified Data.Text as T
 import Data.Time.Calendar (Day)
-import Entities (Person (..), Minutes (..), Days (..))
+import Entities (Days (..), Minutes (..), Person (..))
 import Options.Applicative
 import Text.Read (readMaybe)
 
@@ -13,7 +13,8 @@ data Args = Args
     argsStartDate :: Maybe Day,
     argsTimespan :: Days,
     argsInPerson :: Int,
-    argsFeelingLucky :: Bool
+    argsFeelingLucky :: Bool,
+    argsConfigPath :: FilePath
   }
   deriving (Eq, Show)
 
@@ -66,6 +67,13 @@ parseArgs =
       ( long "lucky"
           <> short 'l'
           <> help "Make the app suggest a single best meeting time (and room if needed)."
+      )
+    <*> strOption
+      ( long "config"
+          <> short 'c'
+          <> metavar "CONFIG"
+          <> help "Path to the config file."
+          <> value ".meet-config.yaml"
       )
 
 readDate :: ReadM Day
