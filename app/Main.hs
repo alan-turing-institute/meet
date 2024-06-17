@@ -52,6 +52,7 @@ main = do
   -- This will check if the group name is an infix of the corresponding person entry,
   -- since "@turing.ac.uk" is appended to the email address if it's not present,
   -- and then add the email addresses of the group to the list of people.
+  -- possible TODO: auto-appending "@turing.ac.uk" to config group emails?
   let lowercaseEmails = map (toLower . personEmail) ppl
       validGroups = filter (\g -> any (isInfixOf (toLower (groupName g))) lowercaseEmails) (groups config)
       validGroupEmails = concatMap groupEmails validGroups
