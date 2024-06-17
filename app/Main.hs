@@ -57,9 +57,15 @@ main = do
       validGroups = filter (\g -> any (isInfixOf (toLower (groupName g))) lowercaseEmails) (groups config)
       validGroupEmails = concatMap groupEmails validGroups
       validGroupNames = map (toLower . groupName) validGroups
-      ppl' = filter (\p -> any (isInfixOf (toLower (personEmail p))) validGroupNames) ppl ++ map Person validGroupEmails
+      -- This part made me feel a little bit insane, so I'm writing a comment to explain it to morning Nathan.
+      -- We want to filter out the placeholder Person entries that were added to the list of people as a result of the group email check.
+      -- However, we want to check if the group name is an infix of the email address, not the other way around (as we did above).
+      -- So we define a function that takes two strings and checks if the second string is an infix of the first string.
+      -- I originally thought this needed a map to work (which is why I did that), but this seemed to do the job with just `any`.
+      isInfixOfBackwards x y = isInfixOf y x
+      ppl' = filter (\p -> not $ any (isInfixOfBackwards (toLower (personEmail p))) validGroupNames) ppl ++ map Person validGroupEmails
   if validGroups /= []
-    then T.putStrLn "Adding emails from the following groups:" >> mapM_ T.putStrLn validGroupNames
+    then T.putStrLn "Adding emails from the following groups:" >> mapM_ T.putStrLn validGroupNames >> T.putStrLn " with the following emails:" >> mapM_ T.putStrLn validGroupEmails
     else T.putStrLn "No groups were specified in the list of people."
 
   token <- getToken
