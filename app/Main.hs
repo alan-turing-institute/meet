@@ -5,6 +5,7 @@ module Main where
 
 import Args (Args (..), getArgs)
 import Azure (fetchSchedules, getToken)
+import Config (Config (..))
 import Control.Applicative
 import Control.Monad (when)
 import Data.ByteString (ByteString)
@@ -19,44 +20,9 @@ import Entities (Days (..), Person (..), Room (..), allRooms)
 import Meetings (chooseBestMeeting, getMeetings)
 import Print (infoPrint, prettyPrint)
 import System.Exit (exitSuccess)
-import Text.RawString.QQ
 import Utils
 import Prelude -- Ensure Applicative is in scope and we have no warnings, before/after AMP.
 
--- to refactor ---------------------------------------------------------------
-data Group = Group
-  { name :: Text,
-    emails :: [Text]
-  }
-  deriving (Eq, Show)
-
-instance FromJSON Group where
-  parseJSON = Y.withObject "Group" $ \v ->
-    Group
-      <$> v .: "name"
-      <*> v .: "emails"
-
-newtype Config = Config
-  { groups :: [Group]
-  }
-  deriving (Eq, Show)
-
-instance FromJSON Config where
-  parseJSON = Y.withObject "Config" $ \v ->
-    Config <$> v .: "groups"
-
--- | Example of a YAML configuration file for groups of email addresses.
-configYaml :: ByteString
-configYaml =
-  [r|
-groups:
-  - name: Friends
-    emails:
-      - a@turing.ac.uk
-      - b@example.com
-|]
-
---------------------------------------------------------------------------------
 main :: IO ()
 main = do
   args <- getArgs
@@ -83,7 +49,8 @@ main = do
     T.putStrLn "Perhaps try reducing the number of people who need to be in-person?"
     exitSuccess
 
-  case Y.decodeEither' @Config configYaml of
+  -- Read in the config from ~/.meet-config.yaml
+  case Y.decodeFileEither @Config "~/.meet-config.yaml" of
     -- Handle the case where the config file is not valid YAML explicitly,
     -- and tell the compiler it is definitely a Config.
     -- (this seemed to be needed for the typechecker to be happy)

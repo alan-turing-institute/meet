@@ -16,6 +16,7 @@ extra-doc-files: CHANGELOG.md
 library
     exposed-modules:
         Azure
+        Config
         Entities
         Meetings
         Print
@@ -35,7 +36,10 @@ library
         vector,
         containers,
         extra,
-        foldable1-classes-compat
+        foldable1-classes-compat,
+        yaml,
+        raw-strings-qq,
+        bytestring
 
 executable meet
     main-is:            Main.hs
@@ -50,9 +54,6 @@ executable meet
         time,
         text,
         optparse-applicative,
-        yaml,
-        raw-strings-qq,
-        bytestring
 
 executable meet-rooms
     main-is:            Main.hs
@@ -67,19 +68,3 @@ executable meet-rooms
         time,
         text,
         optparse-applicative
-
-executable config
-    main-is:            Main.hs
-    hs-source-dirs:     config
-    default-language:   Haskell2010
-    default-extensions: OverloadedStrings ScopedTypeVariables
-    ghc-options:        -Wall
-    build-depends:
-        base ^>=4.17 || ^>=4.18 || ^>=4.19,
-        meet,
-        time,
-        text,
-        optparse-applicative,
-        yaml,
-        raw-strings-qq,
-        bytestring
