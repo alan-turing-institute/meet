@@ -50,10 +50,10 @@ configYaml :: ByteString
 configYaml =
   [r|
 groups:
-    - name: Friends
+  - name: Friends
     emails:
-        - a@turing.ac.uk
-        - b@example.com
+      - a@turing.ac.uk
+      - b@example.com
 |]
 
 --------------------------------------------------------------------------------
