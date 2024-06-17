@@ -52,7 +52,6 @@ main = do
   -- This will check if the group name is an infix of the corresponding person entry,
   -- since "@turing.ac.uk" is appended to the email address if it's not present,
   -- and then add the email addresses of the group to the list of people.
-  print config
   let lowercaseEmails = map (toLower . personEmail) ppl
       validGroups = filter (\g -> any (isInfixOf (toLower (groupName g))) lowercaseEmails) (groups config)
       validGroupEmails = concatMap groupEmails validGroups
@@ -61,6 +60,7 @@ main = do
   if validGroups /= []
     then T.putStrLn "Adding emails from the following groups:" >> mapM_ T.putStrLn validGroupNames
     else T.putStrLn "No groups were specified in the list of people."
+
   token <- getToken
   (personSchs, roomSchs) <- fetchSchedules token ppl' okRooms startTime' endTime' intervalMinutes
   let goodMeetings = getMeetings personSchs roomSchs inPerson nChunks startTime' intervalMinutes localTz
