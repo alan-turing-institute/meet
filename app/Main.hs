@@ -1,6 +1,3 @@
-{-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE TypeApplications #-}
-
 module Main where
 
 import Args (Args (..), getArgs)
