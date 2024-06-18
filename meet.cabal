@@ -37,9 +37,7 @@ library
         containers,
         extra,
         foldable1-classes-compat,
-        yaml,
-        raw-strings-qq,
-        bytestring
+        yaml
 
 executable meet
     main-is:            Main.hs

@@ -1,15 +1,12 @@
 {-# LANGUAGE TypeApplications #-}
 
-module Config (readConfig, peopleAndGroups, Config (..), Group (..)) where
+module Config (readConfig, peopleAndGroups) where
 
-import Control.Applicative
-import Data.ByteString (ByteString)
 import Data.Text (Text, isInfixOf, pack, toLower)
 import qualified Data.Text.IO as T
 import Data.Yaml (FromJSON (..), (.:))
 import qualified Data.Yaml as Y
 import Entities (Person (..))
-import Text.RawString.QQ
 
 data Group = Group
   { groupName :: Text,
@@ -69,5 +66,5 @@ peopleAndGroups config ppl = case config of
         ppl' = filter (\p -> not $ any (isInfixOfBackwards (toLower (personEmail p))) validGroupNames) ppl ++ map Person validGroupEmails
     if validGroups /= []
       then T.putStrLn "Adding emails from the following groups:" >> mapM_ T.putStrLn validGroupNames >> T.putStrLn " with the following emails:" >> mapM_ T.putStrLn validGroupEmails
-      else T.putStrLn "No groups were specified in the list of people."
+      else T.putStrLn "None of the supplied names match any groups in the config file."
     return ppl'
