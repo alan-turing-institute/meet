@@ -1,9 +1,8 @@
-{-# LANGUAGE TypeApplications #-}
-
 module Main where
 
 import Args (Args (..), getArgs)
 import Azure (fetchSchedules, getToken)
+import Config (peopleAndGroups, readConfig)
 import Control.Monad (when)
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Text.IO as T
@@ -41,8 +40,10 @@ main = do
     T.putStrLn "Perhaps try reducing the number of people who need to be in-person?"
     exitSuccess
 
+  config <- readConfig $ argsConfigPath args
+  ppl' <- peopleAndGroups config ppl -- Some info printouts are done here.
   token <- getToken
-  (personSchs, roomSchs) <- fetchSchedules token ppl okRooms startTime' endTime' intervalMinutes
+  (personSchs, roomSchs) <- fetchSchedules token ppl' okRooms startTime' endTime' intervalMinutes
   let goodMeetings = getMeetings personSchs roomSchs inPerson nChunks startTime' intervalMinutes localTz
 
   case NE.nonEmpty goodMeetings of

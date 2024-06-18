@@ -16,6 +16,7 @@ extra-doc-files: CHANGELOG.md
 library
     exposed-modules:
         Azure
+        Config
         Entities
         Meetings
         Print
@@ -35,7 +36,8 @@ library
         vector,
         containers,
         extra,
-        foldable1-classes-compat
+        foldable1-classes-compat,
+        yaml
 
 executable meet
     main-is:            Main.hs
