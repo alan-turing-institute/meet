@@ -5,7 +5,7 @@ module Main where
 
 import Args (Args (..), getArgs)
 import Azure (fetchSchedules, getToken)
-import Config (Config (..), Group (..), readConfig)
+import Config (Config (..), Group (..), peopleAndGroups, readConfig)
 import Control.Applicative
 import Control.Monad (when)
 import qualified Data.List.NonEmpty as NE
@@ -47,27 +47,7 @@ main = do
     exitSuccess
 
   config <- readConfig $ argsConfigPath args
-  -- Add group emails to the list of people, but only if that group is specified in the list of people.
-  -- We then create a new list that contains the emails of the groups specified in the list of people.
-  -- This will check if the group name is an infix of the corresponding person entry,
-  -- since "@turing.ac.uk" is appended to the email address if it's not present,
-  -- and then add the email addresses of the group to the list of people.
-  -- possible TODO: auto-appending "@turing.ac.uk" to config group emails?
-  let lowercaseEmails = map (toLower . personEmail) ppl
-      validGroups = filter (\g -> any (isInfixOf (toLower (groupName g))) lowercaseEmails) (groups config)
-      validGroupEmails = concatMap groupEmails validGroups
-      validGroupNames = map (toLower . groupName) validGroups
-      -- This part made me feel a little bit insane, so I'm writing a comment to explain it to morning Nathan.
-      -- We want to filter out the placeholder Person entries that were added to the list of people as a result of the group email check.
-      -- However, we want to check if the group name is an infix of the email address, not the other way around (as we did above).
-      -- So we define a function that takes two strings and checks if the second string is an infix of the first string.
-      -- I originally thought this needed a map to work (which is why I did that), but this seemed to do the job with just `any`.
-      isInfixOfBackwards x y = isInfixOf y x
-      ppl' = filter (\p -> not $ any (isInfixOfBackwards (toLower (personEmail p))) validGroupNames) ppl ++ map Person validGroupEmails
-  if validGroups /= []
-    then T.putStrLn "Adding emails from the following groups:" >> mapM_ T.putStrLn validGroupNames >> T.putStrLn " with the following emails:" >> mapM_ T.putStrLn validGroupEmails
-    else T.putStrLn "No groups were specified in the list of people."
-
+  ppl' <- peopleAndGroups config ppl -- Some info printouts are done here.
   token <- getToken
   (personSchs, roomSchs) <- fetchSchedules token ppl' okRooms startTime' endTime' intervalMinutes
   let goodMeetings = getMeetings personSchs roomSchs inPerson nChunks startTime' intervalMinutes localTz
