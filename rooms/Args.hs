@@ -8,7 +8,8 @@ import Text.Read (readMaybe)
 data Args = Args
   { argsStartDate :: Maybe Day,
     argsTimespan :: Days,
-    argsCapacity :: Int
+    argsCapacity :: Int,
+    argsShowLocalTime :: Bool
   }
   deriving (Eq, Show)
 
@@ -39,6 +40,10 @@ parseArgs =
           <> metavar "PEOPLE"
           <> help "Minimum capacity needed for the meeting room. Defaults to 0."
           <> value 0
+      )
+    <*> switch
+      ( long "local"
+          <> help "Display meeting times in your local timezone. By default, times are shown in London time."
       )
 
 readDate :: ReadM Day

@@ -1,15 +1,31 @@
 module Utils where
 
-import Entities (Minutes (..))
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time.Clock (getCurrentTime)
-import Data.Time.LocalTime (LocalTime (..), getCurrentTimeZone, utcToLocalTime)
+import Data.Time.LocalTime (LocalTime (..), TimeZone (..), getCurrentTimeZone, utcToLocalTime)
+import Data.Time.Zones (loadTZFromDB, timeZoneForUTCTime, utcToLocalTimeTZ)
+import Entities (Minutes (..))
 import Print (prettyThrow, prettyWarn)
 
 tshow :: (Show a) => a -> Text
 tshow = T.pack . show
 
+-- | Returns the current timezone in London (either GMT or BST).
+getCurrentLondonTZ :: IO TimeZone
+getCurrentLondonTZ = do
+  now <- getCurrentTime
+  london <- loadTZFromDB "Europe/London"
+  pure $ timeZoneForUTCTime london now
+
+-- | Returns the current time in London.
+getCurrentLondonTime :: IO LocalTime
+getCurrentLondonTime = do
+  now <- getCurrentTime
+  london <- loadTZFromDB "Europe/London"
+  pure $ utcToLocalTimeTZ london now
+
+-- | Returns the current local time, according to the user's system timezone.
 getCurrentLocalTime :: IO LocalTime
 getCurrentLocalTime = do
   now <- getCurrentTime
