@@ -142,10 +142,10 @@ absolutiseMeetings startTime' intervalMinutes tz rmwr =
     indexToTime idx = addUTCTime (intSecondsToNDT $ (unMinutes intervalMinutes) * 60 * idx) startTime'
 
 getMeetings :: [Schedule Person] -> [Schedule Room] -> Int -> Int -> UTCTime -> Minutes -> TimeZone -> [Meeting]
-getMeetings personSchedules roomSchedules inPerson nChunks startTime' intervalMinutes localTz =
+getMeetings personSchedules roomSchedules inPerson nChunks startTime' intervalMinutes londonTz =
   let relativeMeetings = findRelativeMeetings personSchedules nChunks
       relativeMeetingsWithRooms = map (addRoomsToMeeting roomSchedules) relativeMeetings
-      meetings = map (absolutiseMeetings startTime' intervalMinutes localTz) relativeMeetingsWithRooms
+      meetings = map (absolutiseMeetings startTime' intervalMinutes londonTz) relativeMeetingsWithRooms
    in filter (isMeetingGood inPerson) meetings
 
 getRoomMeetings :: [Schedule Room] -> Int -> Int -> UTCTime -> Minutes -> TimeZone -> [Meeting]

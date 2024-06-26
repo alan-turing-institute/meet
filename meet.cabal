@@ -27,6 +27,7 @@ library
     build-depends:
         base ^>=4.17 || ^>=4.18 || ^>=4.19,
         time,
+        tz,
         req,
         text,
         aeson,

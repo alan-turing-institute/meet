@@ -6,9 +6,16 @@ import Args (Args (..), getArgs)
 import Azure (fetchSchedules, getToken)
 import Control.Monad (when)
 import qualified Data.List.NonEmpty as NE
+import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Data.Time.Calendar (addDays)
-import Data.Time.LocalTime (LocalTime (..), TimeOfDay (..), getCurrentTimeZone, localTimeToUTC)
+import Data.Time.LocalTime
+  ( LocalTime (..),
+    TimeOfDay (..),
+    getCurrentTimeZone,
+    localTimeToUTC,
+    timeZoneOffsetString,
+  )
 import Entities (Days (..), Room (..), allRooms)
 import Meetings (chooseBestMeeting, getMeetings)
 import Print (infoPrint, prettyPrint)
@@ -24,16 +31,19 @@ main = do
       searchStartDate = argsStartDate args
       searchSpanDays = argsTimespan args
       inPerson = argsInPerson args
+      showInLocalTime = argsShowLocalTime args
   nChunks <- gracefulDivide durationMinutes intervalMinutes
 
+  -- Default start date is today but in London
   startDate' <- case searchStartDate of
     Just d -> pure d
-    Nothing -> localDay <$> getCurrentLocalTime
+    Nothing -> localDay <$> getCurrentLondonTime
 
-  localTz <- getCurrentTimeZone
-  let startTime' = localTimeToUTC localTz $ LocalTime startDate' (TimeOfDay 8 30 0)
+  -- Only count meetings between 8:30 and 17:30 in London
+  londonTz <- getCurrentLondonTZ
+  let startTime' = localTimeToUTC londonTz $ LocalTime startDate' (TimeOfDay 8 30 0)
   let endDate' = addDays (fromIntegral $ unDays searchSpanDays - 1) startDate'
-      endTime' = localTimeToUTC localTz $ LocalTime endDate' (TimeOfDay 17 30 0)
+      endTime' = localTimeToUTC londonTz $ LocalTime endDate' (TimeOfDay 17 30 0)
 
   let okRooms = filter ((>= inPerson) . capacity) allRooms
   when (null okRooms) $ do
@@ -43,11 +53,16 @@ main = do
 
   token <- getToken
   (personSchs, roomSchs) <- fetchSchedules token ppl okRooms startTime' endTime' intervalMinutes
-  let goodMeetings = getMeetings personSchs roomSchs inPerson nChunks startTime' intervalMinutes localTz
+  let goodMeetings = getMeetings personSchs roomSchs inPerson nChunks startTime' intervalMinutes londonTz
+
+  -- Display times in London unless otherwise specified
+  displayTz <- if showInLocalTime then getCurrentTimeZone else pure londonTz
+  let displayTzText = T.pack $ "UTC" <> timeZoneOffsetString displayTz
 
   case NE.nonEmpty goodMeetings of
     Nothing -> T.putStrLn "No meetings were available. :("
-    Just ms ->
+    Just ms -> do
       if argsFeelingLucky args
-        then infoPrint (chooseBestMeeting ms) inPerson
-        else prettyPrint goodMeetings
+        then infoPrint displayTz (chooseBestMeeting ms) inPerson
+        else prettyPrint displayTz goodMeetings
+      T.putStrLn $ "All times are in " <> displayTzText <> "."
