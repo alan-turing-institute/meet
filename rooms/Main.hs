@@ -8,7 +8,7 @@ import Control.Monad (when)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Data.Time.Calendar (addDays)
-import Data.Time.LocalTime (LocalTime (..), TimeOfDay (..), getCurrentTimeZone, localTimeToUTC)
+import Data.Time.LocalTime (LocalTime (..), TimeOfDay (..), getCurrentTimeZone, localTimeToUTC, timeZoneOffsetString)
 import Entities (Days (..), Minutes (..), Room (..), allRooms, schedule)
 import Meetings (getRoomMeetings)
 import Print (prettyPrint)
