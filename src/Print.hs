@@ -8,7 +8,14 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Data.Time.Calendar (Day, dayOfWeek, toGregorian)
 import qualified Data.Time.Calendar as C
-import Data.Time.LocalTime (LocalTime (..), TimeOfDay (..), ZonedTime (..))
+import Data.Time.LocalTime
+  ( LocalTime (..),
+    TimeOfDay (..),
+    TimeZone (..),
+    ZonedTime (..),
+    utcToZonedTime,
+    zonedTimeToUTC,
+  )
 import Entities (Room (..))
 import Meetings (Meeting (..))
 import System.Console.ANSI
@@ -38,15 +45,19 @@ showDateWithDay d =
       dayShort = T.pack (show d')
    in dayShort <> " " <> monthShort <> " (" <> dayOfWeekShort <> ")"
 
-showTime :: ZonedTime -> ZonedTime -> Text
-showTime start end =
+-- | Convert a ZonedTime to another ZonedTime
+convertZone :: TimeZone -> ZonedTime -> ZonedTime
+convertZone tz zt = utcToZonedTime tz $ zonedTimeToUTC zt
+
+showTime :: TimeZone -> ZonedTime -> ZonedTime -> Text
+showTime tz start end =
   let tshowPad :: Int -> Text
       tshowPad n = T.justifyRight 2 '0' (tshow n)
       show24Hr :: ZonedTime -> Text
       show24Hr zt =
         T.concat
-          [ tshowPad . todHour . localTimeOfDay . zonedTimeToLocalTime $ zt,
-            tshowPad . todMin . localTimeOfDay . zonedTimeToLocalTime $ zt
+          [ tshowPad . todHour . localTimeOfDay . zonedTimeToLocalTime $ convertZone tz zt,
+            tshowPad . todMin . localTimeOfDay . zonedTimeToLocalTime $ convertZone tz zt
           ]
    in show24Hr start <> "—" <> show24Hr end
 
@@ -61,8 +72,8 @@ padWithStyles sgrs n t =
   let dw = T.length t
    in styleText sgrs $ t <> T.replicate (n - dw) " "
 
-prettyPrint :: [Meeting] -> IO ()
-prettyPrint ms = do
+prettyPrint :: TimeZone -> [Meeting] -> IO ()
+prettyPrint tz ms = do
   let colSepChar = "│"
       rowSepChar = "─"
       doubleRowSepChar = "═"
@@ -84,8 +95,8 @@ prettyPrint ms = do
           : "Time"
           : map roomShortName relevantMeetingRooms
       makeMeetingRow m =
-        [ showDateWithDay . localDay . zonedTimeToLocalTime . startTime $ m,
-          showTime (startTime m) (endTime m)
+        [ showDateWithDay . localDay . zonedTimeToLocalTime $ convertZone tz (startTime m),
+          showTime tz (startTime m) (endTime m)
         ]
           ++ map (\room -> if room `elem` rooms m then " * " else "") relevantMeetingRooms
       meetingRows = map makeMeetingRow ms
@@ -139,16 +150,16 @@ prettyPrint ms = do
         mapM_ (uncurry printRowNoFirst) (zip styles (map makeMeetingRow gs))
   T.putStrLn bottomSepRow
 
-infoPrint :: Meeting -> Int -> IO ()
-infoPrint m inPerson =
+infoPrint :: TimeZone -> Meeting -> Int -> IO ()
+infoPrint tz m inPerson =
   let bold = styleText [SetConsoleIntensity BoldIntensity]
       showMeetingBasic = do
         T.putStrLn
           ( "The first timeslot available is:"
               <> "\n - on "
-              <> bold (showDateWithDay $ localDay $ zonedTimeToLocalTime $ startTime m)
+              <> bold (showDateWithDay $ localDay $ zonedTimeToLocalTime $ convertZone tz (startTime m))
               <> "\n - at "
-              <> bold (showTime (startTime m) (endTime m))
+              <> bold (showTime tz (startTime m) (endTime m))
           )
       showMeetingWithRoom r = do
         T.putStrLn
@@ -156,7 +167,7 @@ infoPrint m inPerson =
               <> "\n - on "
               <> bold (showDateWithDay $ localDay $ zonedTimeToLocalTime $ startTime m)
               <> "\n - at "
-              <> bold (showTime (startTime m) (endTime m))
+              <> bold (showTime tz (startTime m) (endTime m))
               <> "\n - in room "
               <> bold (roomEmail r)
           )
