@@ -19,23 +19,61 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as T
-import Data.Time.Clock (UTCTime)
+import Data.Time.Clock (UTCTime, addUTCTime, getCurrentTime)
 import Data.Time.Format.ISO8601 (iso8601Show)
 import qualified Data.Vector as V
 import Entities (Availability (..), HasSchedule, Minutes (..), Person (..), Room (..), Schedule (..))
 import GHC.Generics
 import Network.HTTP.Req
 import Print (prettyThrow)
+import System.Directory (XdgDirectory (..), createDirectoryIfMissing, doesFileExist, getXdgDirectory)
 import System.Exit (ExitCode (..))
 import System.Process (readProcessWithExitCode, spawnCommand)
 
-newtype Token = Token {_unToken :: Text}
+data Token = Token
+  { accessToken :: Text,
+    refreshToken :: Text,
+    expiresAt :: UTCTime
+  }
+  deriving (Eq, Generic)
+
+instance FromJSON Token
+
+instance ToJSON Token
 
 instance Show Token where
-  show t = T.unpack $ "Token: " <> T.take 10 (_unToken t) <> "..."
+  show t =
+    T.unpack $
+      T.concat
+        ["Access token: ", T.take 10 (accessToken t), "...; Refresh token: ", T.take 10 (refreshToken t), "...; Expires at: ", T.pack (show $ expiresAt t)]
+
+getTokenJsonFilePath :: IO FilePath
+getTokenJsonFilePath = getXdgDirectory XdgCache "meet/token.json"
+
+serialiseToken :: Token -> IO ()
+serialiseToken token = do
+  fp <- getTokenJsonFilePath
+  cacheDir <- getXdgDirectory XdgCache "meet"
+  createDirectoryIfMissing True cacheDir
+  encodeFile fp token
+
+deserialiseToken :: IO (Maybe Token)
+deserialiseToken = do
+  fp <- getTokenJsonFilePath
+  exists <- doesFileExist fp
+  if not exists
+    then pure Nothing
+    else do
+      now <- getCurrentTime
+      maybeToken <- getTokenJsonFilePath >>= decodeFileStrict
+      case maybeToken of
+        Just token
+          -- TODO: Can retrieve a new token if the current one is expired
+          | expiresAt token > now -> pure $ Just token
+        _ -> pure Nothing
 
 withToken :: Token -> Option 'Https
-withToken token = oAuth2Bearer (TE.encodeUtf8 $ _unToken token)
+withToken token = oAuth2Bearer (TE.encodeUtf8 $ accessToken token)
 
 rumClientId :: Text
 rumClientId = "a462354f-fd23-4fdf-94f5-5cce5a6c27c7"
@@ -52,19 +90,24 @@ data DeviceCodeError
   | AesonError Text
   deriving (Eq, Show)
 
-parseDeviceCodePollResponse :: Value -> Either DeviceCodeError Token
-parseDeviceCodePollResponse val =
+parseDeviceCodePollResponse :: Value -> UTCTime -> Either DeviceCodeError Token
+parseDeviceCodePollResponse val now =
   let parser :: Value -> Parser (Either DeviceCodeError Token)
       parser = withObject "DeviceCodeResponse" $ \o -> do
+        accessTokenText <- o .:? "access_token"
+        refreshTokenText <- o .:? "refresh_token"
+        expiresIn :: Maybe Int <- o .:? "expires_in" -- Seconds
         errorText <- o .:? "error"
-        tokenText <- o .:? "access_token"
-        pure $ case (tokenText, errorText) of
-          (Just token, _) -> Right $ Token token
-          (_, Just "authorization_pending") -> Left AuthorisationPending
-          (_, Just "authorization_declined") -> Left AuthorisationDeclined
-          (_, Just "expired_token") -> Left ExpiredToken
-          (_, Just "bad_verification_code") -> Left BadVerificationCode
-          (_, Just err) -> Left $ UnknownResponseError err
+        pure $ case (accessTokenText, refreshTokenText, expiresIn, errorText) of
+          (Just at, Just rt, Just ei, _) ->
+            -- Take off a minute to be safe
+            let expiresAt = addUTCTime (fromIntegral ei - 60) now
+             in Right $ Token at rt expiresAt
+          (_, _, _, Just "authorization_pending") -> Left AuthorisationPending
+          (_, _, _, Just "authorization_declined") -> Left AuthorisationDeclined
+          (_, _, _, Just "expired_token") -> Left ExpiredToken
+          (_, _, _, Just "bad_verification_code") -> Left BadVerificationCode
+          (_, _, _, Just err) -> Left $ UnknownResponseError err
           _ -> Left $ UnknownResponseError "Unknown response"
    in case parseEither parser val of
         Left err -> Left $ AesonError (T.pack err)
@@ -81,7 +124,8 @@ pollForToken code = do
             <> "client_id" =: rumClientId
             <> "device_code" =: code
     req POST poll_url (ReqBodyUrlEnc body) jsonResponse mempty
-  case parseDeviceCodePollResponse (responseBody resp) of
+  currentTime <- getCurrentTime
+  case parseDeviceCodePollResponse (responseBody resp) currentTime of
     Left AuthorisationPending -> do
       threadDelay 250000
       pollForToken code
@@ -108,11 +152,11 @@ parseDeviceCodeResponse = parseEither . withObject "parseDeviceCodeResponse" $ \
     <*> o .: "interval"
     <*> o .: "message"
 
-getToken :: IO Token
-getToken = do
+getTokenFromCode :: IO Token
+getTokenFromCode = do
   respJson <- runReq defaultHttpConfig $ do
     let url = https "login.microsoftonline.com" /: rumTenantId /: "oauth2" /: "v2.0" /: "devicecode"
-    req POST url (ReqBodyUrlEnc ("client_id" =: rumClientId <> "scope" =: ("user.read calendars.read.shared" :: Text))) jsonResponse mempty
+    req POST url (ReqBodyUrlEnc ("client_id" =: rumClientId <> "scope" =: ("user.read calendars.read.shared offline_access" :: Text))) jsonResponse mempty
 
   let resp = parseDeviceCodeResponse (responseBody respJson)
   case resp of
@@ -128,6 +172,16 @@ getToken = do
       case eitherToken of
         Left err -> prettyThrow $ T.pack $ show err
         Right token -> pure token
+
+getToken :: IO Token
+getToken = do
+  maybeToken <- deserialiseToken
+  case maybeToken of
+    Just token -> pure token
+    Nothing -> do
+      newToken <- getTokenFromCode
+      serialiseToken newToken
+      pure newToken
 
 data DateTimeTimeZone = DateTimeTimeZone
   { dateTime :: Text,
