@@ -92,6 +92,6 @@ Available options:
 5. Edit the name of the bottle file, replace `meet--0.x.y.z` with `meet-0.x.y.z` (remove the extra hyphen)
 6. Create a new GitHub release on `meet` for the new version
 7. Upload the renamed bottle file as a binary associated with the release
-8. Replace the `bottle do` block in the `homebrew-hut23` repo with the output of Homebrew.
+8. Inside the `bottle do` block of the `meet.rb` file, replace the `sha256 cellar`... lines with what Homebrew output. Update the version number in the `root_url...` line.
 9. You can duplicate the `sha256 cellar` line and replace `arm64_ventura` with `arm64_monterey` so that people with macOS Monterey can also use it (the binary will work for them). If you do this, you will need to copy the bottle file, rename it to `...monterey...` and upload it to the release as well.
 10. Test that it works with `brew update; brew reinstall meet`
