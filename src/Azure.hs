@@ -28,6 +28,7 @@ import Network.HTTP.Req
 import Print (prettyThrow)
 import System.Directory (XdgDirectory (..), createDirectoryIfMissing, doesFileExist, getXdgDirectory)
 import System.Exit (ExitCode (..))
+import System.FilePath (takeDirectory)
 import System.Process (readProcessWithExitCode, spawnCommand)
 
 data Token = Token
@@ -53,8 +54,7 @@ getTokenJsonFilePath = getXdgDirectory XdgCache "meet/token.json"
 serialiseToken :: Token -> IO ()
 serialiseToken token = do
   fp <- getTokenJsonFilePath
-  cacheDir <- getXdgDirectory XdgCache "meet"
-  createDirectoryIfMissing True cacheDir
+  createDirectoryIfMissing True (takeDirectory fp)
   encodeFile fp token
 
 deserialiseToken :: IO (Maybe Token)
