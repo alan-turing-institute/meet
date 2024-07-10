@@ -30,6 +30,7 @@ import System.Directory (XdgDirectory (..), createDirectoryIfMissing, doesFileEx
 import System.Exit (ExitCode (..))
 import System.FilePath (takeDirectory)
 import System.Process (readProcessWithExitCode, spawnCommand)
+import System.Posix.Files (setFileMode)
 
 data Token = Token
   { accessToken :: Text,
@@ -56,6 +57,7 @@ serialiseToken token = do
   fp <- getTokenJsonFilePath
   createDirectoryIfMissing True (takeDirectory fp)
   encodeFile fp token
+  setFileMode fp 0o600
 
 deserialiseToken :: IO (Maybe Token)
 deserialiseToken = do
