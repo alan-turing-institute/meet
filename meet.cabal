@@ -1,6 +1,6 @@
 cabal-version:     3.0
 name:              meet
-version:           0.2.0.2
+version:           0.2.0.3
 license:           MIT
 license-file:      LICENSE
 maintainer:        hut23@turing.ac.uk
