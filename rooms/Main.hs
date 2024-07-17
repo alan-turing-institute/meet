@@ -60,5 +60,5 @@ main = do
   case goodMeetings of
     [] -> T.putStrLn "No meetings were available. :("
     _ -> do
-      prettyPrint displayTz goodMeetings
+      prettyPrint (argsColors args) displayTz goodMeetings
       T.putStrLn $ "All times are in " <> displayTzText <> "."

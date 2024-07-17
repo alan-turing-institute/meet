@@ -3,6 +3,8 @@ module Print (prettyPrint, infoPrint, prettyThrow, prettyWarn) where
 import Control.Monad (forM_)
 import Data.List (nub, sort, transpose)
 import Data.List.Extra (groupOn)
+import Data.List.NonEmpty (NonEmpty)
+import qualified Data.List.NonEmpty as NE
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
@@ -16,6 +18,7 @@ import Data.Time.LocalTime
     utcToZonedTime,
     zonedTimeToUTC,
   )
+import Data.Word (Word8)
 import Entities (Room (..))
 import Meetings (Meeting (..))
 import System.Console.ANSI
@@ -72,8 +75,8 @@ padWithStyles sgrs n t =
   let dw = T.length t
    in styleText sgrs $ t <> T.replicate (n - dw) " "
 
-prettyPrint :: TimeZone -> [Meeting] -> IO ()
-prettyPrint tz ms = do
+prettyPrint :: NonEmpty Word8 -> TimeZone -> [Meeting] -> IO ()
+prettyPrint colors tz ms = do
   let colSepChar = "│"
       rowSepChar = "─"
       doubleRowSepChar = "═"
@@ -143,10 +146,11 @@ prettyPrint tz ms = do
         T.putStrLn $ if i == 0 then doubleMiddleSepRow else middleSepRow
         -- Header row: date is in bold, the rest in green 35
         printRow
-          ([SetConsoleIntensity BoldIntensity] : repeat [SetPaletteColor Foreground 35])
+          ([SetConsoleIntensity BoldIntensity] : repeat [SetPaletteColor Foreground (NE.head colors)])
           (makeMeetingRow g)
         -- Remaining rows: alternate between purple 128 and green 35
-        let styles = cycle [repeat [SetPaletteColor Foreground 128], repeat [SetPaletteColor Foreground 35]]
+        let shiftedColors = NE.tail colors ++ [NE.head colors]
+        let styles = cycle $ map (\c -> repeat [SetPaletteColor Foreground c]) shiftedColors
         mapM_ (uncurry printRowNoFirst) (zip styles (map makeMeetingRow gs))
   T.putStrLn bottomSepRow
 

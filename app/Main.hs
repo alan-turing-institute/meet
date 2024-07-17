@@ -37,7 +37,6 @@ main = do
       searchStartDate = argsStartDate args
       searchSpanDays = argsTimespan args
       inPerson = argsInPerson args
-      showInLocalTime = argsShowLocalTime args
   nChunks <- gracefulDivide durationMinutes intervalMinutes
 
   -- Default start date is today but in London
@@ -62,7 +61,7 @@ main = do
   let goodMeetings = getMeetings personSchs roomSchs inPerson nChunks startTime' intervalMinutes londonTz
 
   -- Display times in London unless otherwise specified
-  displayTz <- if showInLocalTime then getCurrentTimeZone else pure londonTz
+  displayTz <- if argsShowLocalTime args then getCurrentTimeZone else pure londonTz
   let displayTzText = T.pack $ "UTC" <> timeZoneOffsetString displayTz
 
   case NE.nonEmpty goodMeetings of
@@ -70,5 +69,5 @@ main = do
     Just ms -> do
       if argsFeelingLucky args
         then infoPrint displayTz (chooseBestMeeting ms) inPerson
-        else prettyPrint displayTz goodMeetings
+        else prettyPrint (argsColors args) displayTz goodMeetings
       T.putStrLn $ "All times are in " <> displayTzText <> "."
