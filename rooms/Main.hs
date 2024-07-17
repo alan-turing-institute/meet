@@ -9,8 +9,10 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Data.Time.Calendar (addDays)
 import Data.Time.LocalTime (LocalTime (..), TimeOfDay (..), getCurrentTimeZone, localTimeToUTC, timeZoneOffsetString)
+import Data.Version (showVersion)
 import Entities (Days (..), Minutes (..), Room (..), allRooms, schedule)
 import Meetings (getRoomMeetings)
+import PackageInfo_meet (version)
 import Print (prettyPrint)
 import System.Exit (exitSuccess)
 import Utils
@@ -18,6 +20,10 @@ import Utils
 main :: IO ()
 main = do
   args <- getArgs
+  when (argsShowVersion args) $ do
+    putStrLn $ "meet-rooms version " <> (showVersion version)
+    exitSuccess
+
   let searchStartDate = argsStartDate args
       searchSpanDays = argsTimespan args
       minCapacity = argsCapacity args

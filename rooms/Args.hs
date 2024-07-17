@@ -9,7 +9,8 @@ data Args = Args
   { argsStartDate :: Maybe Day,
     argsTimespan :: Days,
     argsCapacity :: Int,
-    argsShowLocalTime :: Bool
+    argsShowLocalTime :: Bool,
+    argsShowVersion :: Bool
   }
   deriving (Eq, Show)
 
@@ -44,6 +45,10 @@ parseArgs =
     <*> switch
       ( long "local"
           <> help "Display meeting times in your local timezone. By default, times are shown in London time."
+      )
+    <*> switch
+      ( long "version"
+          <> help "Display version number and exit."
       )
 
 readDate :: ReadM Day

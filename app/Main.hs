@@ -16,8 +16,10 @@ import Data.Time.LocalTime
     localTimeToUTC,
     timeZoneOffsetString,
   )
+import Data.Version (showVersion)
 import Entities (Days (..), Room (..), allRooms)
 import Meetings (chooseBestMeeting, getMeetings)
+import PackageInfo_meet (name, version)
 import Print (infoPrint, prettyPrint)
 import System.Exit (exitSuccess)
 import Utils
@@ -25,6 +27,10 @@ import Utils
 main :: IO ()
 main = do
   args <- getArgs
+  when (argsShowVersion args) $ do
+    putStrLn $ name <> " version " <> (showVersion version)
+    exitSuccess
+
   let ppl = argsEmails args
       intervalMinutes = argsInterval args
       durationMinutes = argsDuration args
