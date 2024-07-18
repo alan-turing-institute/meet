@@ -13,7 +13,6 @@ description:
 
 category:        Math
 build-type:      Simple
-extra-doc-files: CHANGELOG.md
 
 library
     exposed-modules:
