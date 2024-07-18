@@ -4,10 +4,10 @@ import Data.List.NonEmpty (NonEmpty)
 import Data.Time.Calendar (Day)
 import Data.Version (showVersion)
 import Data.Word (Word8)
-import Meet.Args
+import Meet.Args (colorFlag, localSwitch, startDateFlag)
 import Meet.Entities (Days (..))
 import Options.Applicative
-import PackageInfo_meet (version)
+import Paths_meet (version)
 
 data Args = Args
   { argsStartDate :: Maybe Day,

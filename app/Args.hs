@@ -5,10 +5,10 @@ import qualified Data.Text as T
 import Data.Time.Calendar (Day)
 import Data.Version (showVersion)
 import Data.Word (Word8)
-import Meet.Args
+import Meet.Args (colorFlag, localSwitch, startDateFlag)
 import Meet.Entities (Days (..), Minutes (..), Person (..))
 import Options.Applicative
-import PackageInfo_meet (name, version)
+import Paths_meet (version)
 
 data Args = Args
   { argsEmails :: [Person],
@@ -80,8 +80,8 @@ readPerson = do
 opts :: ParserInfo Args
 opts =
   info
-    (parseArgs <**> helper <**> simpleVersioner (name ++ " version " ++ showVersion version))
-    (fullDesc <> progDesc "Schedule a meeting with the given emails." <> header (name ++ " - a tool to schedule a meeting"))
+    (parseArgs <**> helper <**> simpleVersioner ("meet version " ++ showVersion version))
+    (fullDesc <> progDesc "Schedule a meeting with the given emails." <> header ("meet - a tool to schedule a meeting"))
 
 getArgs :: IO Args
 getArgs = execParser opts
