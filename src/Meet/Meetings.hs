@@ -1,6 +1,5 @@
-module Meetings (Meeting (..), chooseBestMeeting, getMeetings, getRoomMeetings) where
+module Meet.Meetings (Meeting (..), chooseBestMeeting, getMeetings, getRoomMeetings) where
 
-import Entities (Minutes (..))
 import Data.Foldable1 (maximumBy)
 import Data.List (findIndices, transpose)
 import Data.List.NonEmpty (NonEmpty)
@@ -21,7 +20,7 @@ import Data.Time.LocalTime
     zonedTimeToLocalTime,
     zonedTimeToUTC,
   )
-import Entities (Availability (..), Person (..), Room (..), Schedule (..))
+import Meet.Entities (Availability (..), Minutes (..), Person (..), Room (..), Schedule (..))
 
 data RelativeMeeting = RelativeMeeting
   { startIndex :: Int,

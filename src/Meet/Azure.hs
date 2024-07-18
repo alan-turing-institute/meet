@@ -1,7 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 
-module Azure
+module Meet.Azure
   ( getToken,
     getAvailabilityText,
     fetchSchedules,
@@ -22,15 +22,15 @@ import qualified Data.Text.IO as T
 import Data.Time.Clock (UTCTime, addUTCTime, getCurrentTime)
 import Data.Time.Format.ISO8601 (iso8601Show)
 import qualified Data.Vector as V
-import Entities (Availability (..), HasSchedule, Minutes (..), Person (..), Room (..), Schedule (..))
 import GHC.Generics
+import Meet.Entities (Availability (..), HasSchedule, Minutes (..), Person (..), Room (..), Schedule (..))
+import Meet.Print (prettyThrow)
 import Network.HTTP.Req
-import Print (prettyThrow)
 import System.Directory (XdgDirectory (..), createDirectoryIfMissing, doesFileExist, getXdgDirectory)
 import System.Exit (ExitCode (..))
 import System.FilePath (takeDirectory)
-import System.Process (readProcessWithExitCode, spawnCommand)
 import System.Posix.Files (setFileMode)
+import System.Process (readProcessWithExitCode, spawnCommand)
 
 data Token = Token
   { accessToken :: Text,

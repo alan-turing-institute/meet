@@ -1,15 +1,13 @@
 module Args (Args (..), getArgs) where
 
 import Data.List.NonEmpty (NonEmpty)
-import qualified Data.List.NonEmpty as NE
-import qualified Data.Text as T
 import Data.Time.Calendar (Day)
 import Data.Version (showVersion)
 import Data.Word (Word8)
-import Entities (Days (..))
+import Meet.Args
+import Meet.Entities (Days (..))
 import Options.Applicative
 import PackageInfo_meet (version)
-import Text.Read (readMaybe)
 
 data Args = Args
   { argsStartDate :: Maybe Day,
@@ -23,15 +21,7 @@ data Args = Args
 parseArgs :: Parser Args
 parseArgs =
   Args
-    <$> optional
-      ( option
-          readDate
-          ( long "startDate"
-              <> short 's'
-              <> metavar "YYYY-MM-DD"
-              <> help "First day to start searching for a meeting room on."
-          )
-      )
+    <$> startDateFlag
     <*> option
       (Days <$> auto)
       ( long "timespan"
@@ -48,32 +38,8 @@ parseArgs =
           <> help "Minimum capacity needed for the meeting room. Defaults to 0."
           <> value 0
       )
-    <*> switch
-      ( long "local"
-          <> help "Display meeting times in your local timezone. By default, times are shown in London time."
-      )
-    <*> option
-      readColors
-      ( long "color"
-          <> short 'c'
-          <> metavar "COLOR"
-          <> help "Colours to be used for output table formatting. Colours here refer to 256-colour terminal colours, and are specified as a comma-separated list of integers between 0 and 255 (inclusive). Pass a value of 'none' to remove colours. Defaults to '35,128', which is green and purple."
-          <> value (Just $ NE.fromList [35, 128])
-      )
-
-readDate :: ReadM Day
-readDate = do
-  s <- str
-  case readMaybe s of
-    Just d -> pure d
-    Nothing -> error "Date must be specified in YYYY-MM-DD format"
-
-readColors :: ReadM (Maybe (NonEmpty Word8))
-readColors = do
-  val <- str
-  pure $ case val of
-    "none" -> Nothing
-    _ -> Just $ NE.fromList $ map (read . T.unpack) $ T.splitOn "," val
+    <*> localSwitch
+    <*> colorFlag
 
 opts :: ParserInfo Args
 opts =

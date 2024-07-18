@@ -3,17 +3,17 @@
 module Main where
 
 import Args (Args (..), getArgs)
-import Azure (fetchSchedules, getToken)
 import Control.Monad (when)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Data.Time.Calendar (addDays)
 import Data.Time.LocalTime (LocalTime (..), TimeOfDay (..), getCurrentTimeZone, localTimeToUTC, timeZoneOffsetString)
-import Entities (Days (..), Minutes (..), Room (..), allRooms, schedule)
-import Meetings (getRoomMeetings)
-import Print (prettyPrint)
+import Meet.Azure (fetchSchedules, getToken)
+import Meet.Entities (Days (..), Minutes (..), Room (..), allRooms, schedule)
+import Meet.Meetings (getRoomMeetings)
+import Meet.Print (prettyPrint)
+import Meet.Utils
 import System.Exit (exitSuccess)
-import Utils
 
 main :: IO ()
 main = do

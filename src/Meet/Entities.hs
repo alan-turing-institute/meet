@@ -1,4 +1,4 @@
-module Entities
+module Meet.Entities
   ( Availability (..),
     Schedule (..),
     HasSchedule,

@@ -1,4 +1,4 @@
-module Print (prettyPrint, infoPrint, prettyThrow, prettyWarn) where
+module Meet.Print (prettyPrint, infoPrint, prettyThrow, prettyWarn) where
 
 import Control.Monad (forM_)
 import Data.List (nub, sort, transpose)
@@ -19,8 +19,8 @@ import Data.Time.LocalTime
     zonedTimeToUTC,
   )
 import Data.Word (Word8)
-import Entities (Room (..))
-import Meetings (Meeting (..))
+import Meet.Entities (Room (..))
+import Meet.Meetings (Meeting (..))
 import System.Console.ANSI
 import System.Exit (exitFailure)
 import System.IO (stderr)

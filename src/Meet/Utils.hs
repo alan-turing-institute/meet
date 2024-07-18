@@ -1,4 +1,4 @@
-module Utils where
+module Meet.Utils where
 
 import Data.Binary.Get (runGet)
 import qualified Data.ByteString.Lazy as BS
@@ -8,8 +8,8 @@ import Data.Time.Clock (getCurrentTime)
 import Data.Time.LocalTime (LocalTime (..), TimeZone (..), getCurrentTimeZone, utcToLocalTime)
 import Data.Time.Zones (TZ, timeZoneForUTCTime, utcToLocalTimeTZ)
 import Data.Time.Zones.Read (olsonGet)
-import Entities (Minutes (..))
-import Print (prettyThrow, prettyWarn)
+import Meet.Entities (Minutes (..))
+import Meet.Print (prettyThrow, prettyWarn)
 
 tshow :: (Show a) => a -> Text
 tshow = T.pack . show
