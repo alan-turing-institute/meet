@@ -75,7 +75,7 @@ padWithStyles sgrs n t =
   let dw = T.length t
    in styleText sgrs $ t <> T.replicate (n - dw) " "
 
-prettyPrint :: NonEmpty Word8 -> TimeZone -> [Meeting] -> IO ()
+prettyPrint :: Maybe (NonEmpty Word8) -> TimeZone -> [Meeting] -> IO ()
 prettyPrint colors tz ms = do
   let colSepChar = "│"
       rowSepChar = "─"
@@ -144,14 +144,18 @@ prettyPrint colors tz ms = do
       (g : gs) -> do
         -- Horizontal line
         T.putStrLn $ if i == 0 then doubleMiddleSepRow else middleSepRow
-        -- Header row: date is in bold, the rest in green 35
-        printRow
-          ([SetConsoleIntensity BoldIntensity] : repeat [SetPaletteColor Foreground (NE.head colors)])
-          (makeMeetingRow g)
-        -- Remaining rows: alternate between purple 128 and green 35
-        let shiftedColors = NE.tail colors ++ [NE.head colors]
-        let styles = cycle $ map (\c -> repeat [SetPaletteColor Foreground c]) shiftedColors
-        mapM_ (uncurry printRowNoFirst) (zip styles (map makeMeetingRow gs))
+        -- Header row: date is in bold, the rest in the first colour
+        let firstRowStyles = case colors of
+              Just cs -> [SetConsoleIntensity BoldIntensity] : repeat [SetPaletteColor Foreground (NE.head cs)]
+              Nothing -> [SetConsoleIntensity BoldIntensity] : repeat []
+        printRow firstRowStyles (makeMeetingRow g)
+        -- Remaining rows: alternate between the remaining colours
+        let remainingRowStyles = case colors of
+              Just cs ->
+                let shiftedColors = NE.tail cs ++ [NE.head cs]
+                 in cycle $ map (\c -> repeat [SetPaletteColor Foreground c]) shiftedColors
+              Nothing -> repeat (repeat [])
+        mapM_ (uncurry printRowNoFirst) (zip remainingRowStyles (map makeMeetingRow gs))
   T.putStrLn bottomSepRow
 
 infoPrint :: TimeZone -> Meeting -> Int -> IO ()

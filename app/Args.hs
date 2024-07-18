@@ -18,7 +18,7 @@ data Args = Args
     argsInPerson :: Int,
     argsFeelingLucky :: Bool,
     argsShowLocalTime :: Bool,
-    argsColors :: NonEmpty Word8,
+    argsColors :: Maybe (NonEmpty Word8),
     argsShowVersion :: Bool
   }
   deriving (Eq, Show)
@@ -83,7 +83,7 @@ parseArgs =
           <> short 'c'
           <> metavar "COLOR"
           <> help "Colours to be used for output table formatting. Colours here refer to 256-colour terminal colours, and are specified as a comma-separated list of integers between 0 and 255 (inclusive). Pass a value of 'none' to remove colours. Defaults to '35,128', which is green and purple."
-          <> value (NE.fromList [35, 128])
+          <> value (Just $ NE.fromList [35, 128])
       )
     <*> switch
       ( long "version"
@@ -106,12 +106,12 @@ readPerson = do
         then val
         else val <> "@turing.ac.uk"
 
-readColors :: ReadM (NonEmpty Word8)
+readColors :: ReadM (Maybe (NonEmpty Word8))
 readColors = do
   val <- str
   pure $ case val of
-    "none" -> NE.fromList [0]
-    _ -> NE.fromList $ map (read . T.unpack) $ T.splitOn "," val
+    "none" -> Nothing
+    _ -> Just $ NE.fromList $ map (read . T.unpack) $ T.splitOn "," val
 
 opts :: ParserInfo Args
 opts = info (parseArgs <**> helper) (fullDesc <> progDesc "Schedule a meeting with the given emails." <> header "meet - a tool to schedule a meeting")
