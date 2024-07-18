@@ -3,7 +3,6 @@
 module Main where
 
 import Args (Args (..), getArgs)
-import Azure (fetchSchedules, getToken)
 import Control.Monad (when)
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Text as T
@@ -16,11 +15,12 @@ import Data.Time.LocalTime
     localTimeToUTC,
     timeZoneOffsetString,
   )
-import Entities (Days (..), Room (..), allRooms)
-import Meetings (chooseBestMeeting, getMeetings)
-import Print (infoPrint, prettyPrint)
+import Meet.Azure (fetchSchedules, getToken)
+import Meet.Entities (Days (..), Room (..), allRooms)
+import Meet.Meetings (chooseBestMeeting, getMeetings)
+import Meet.Print (infoPrint, prettyPrint)
+import Meet.Utils
 import System.Exit (exitSuccess)
-import Utils
 
 main :: IO ()
 main = do
@@ -31,7 +31,6 @@ main = do
       searchStartDate = argsStartDate args
       searchSpanDays = argsTimespan args
       inPerson = argsInPerson args
-      showInLocalTime = argsShowLocalTime args
   nChunks <- gracefulDivide durationMinutes intervalMinutes
 
   -- Default start date is today but in London
@@ -56,7 +55,7 @@ main = do
   let goodMeetings = getMeetings personSchs roomSchs inPerson nChunks startTime' intervalMinutes londonTz
 
   -- Display times in London unless otherwise specified
-  displayTz <- if showInLocalTime then getCurrentTimeZone else pure londonTz
+  displayTz <- if argsShowLocalTime args then getCurrentTimeZone else pure londonTz
   let displayTzText = T.pack $ "UTC" <> timeZoneOffsetString displayTz
 
   case NE.nonEmpty goodMeetings of
@@ -64,5 +63,5 @@ main = do
     Just ms -> do
       if argsFeelingLucky args
         then infoPrint displayTz (chooseBestMeeting ms) inPerson
-        else prettyPrint displayTz goodMeetings
+        else prettyPrint (argsColors args) displayTz goodMeetings
       T.putStrLn $ "All times are in " <> displayTzText <> "."

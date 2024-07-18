@@ -1,10 +1,14 @@
 module Args (Args (..), getArgs) where
 
+import Data.List.NonEmpty (NonEmpty)
 import qualified Data.Text as T
 import Data.Time.Calendar (Day)
-import Entities (Days (..), Minutes (..), Person (..))
+import Data.Version (showVersion)
+import Data.Word (Word8)
+import Meet.Args (colorFlag, localSwitch, startDateFlag)
+import Meet.Entities (Days (..), Minutes (..), Person (..))
 import Options.Applicative
-import Text.Read (readMaybe)
+import Paths_meet (version)
 
 data Args = Args
   { argsEmails :: [Person],
@@ -14,7 +18,8 @@ data Args = Args
     argsTimespan :: Days,
     argsInPerson :: Int,
     argsFeelingLucky :: Bool,
-    argsShowLocalTime :: Bool
+    argsShowLocalTime :: Bool,
+    argsColors :: Maybe (NonEmpty Word8)
   }
   deriving (Eq, Show)
 
@@ -38,15 +43,7 @@ parseArgs =
           <> help "Duration of the meeting. Defaults to 60 minutes."
           <> value (Minutes 60)
       )
-    <*> optional
-      ( option
-          readDate
-          ( long "startDate"
-              <> short 's'
-              <> metavar "YYYY-MM-DD"
-              <> help "First day to start searching for a meeting on."
-          )
-      )
+    <*> startDateFlag
     <*> option
       (Days <$> auto)
       ( long "timespan"
@@ -68,17 +65,8 @@ parseArgs =
           <> short 'l'
           <> help "Make the app suggest a single best meeting time (and room if needed)."
       )
-    <*> switch
-      ( long "local"
-          <> help "Display meeting times in your local timezone. By default, times are shown in London time."
-      )
-
-readDate :: ReadM Day
-readDate = do
-  s <- str
-  case readMaybe s of
-    Just d -> pure d
-    Nothing -> error "Date must be specified in YYYY-MM-DD format"
+    <*> localSwitch
+    <*> colorFlag
 
 readPerson :: ReadM Person
 readPerson = do
@@ -90,7 +78,10 @@ readPerson = do
         else val <> "@turing.ac.uk"
 
 opts :: ParserInfo Args
-opts = info (parseArgs <**> helper) (fullDesc <> progDesc "Schedule a meeting with the given emails." <> header "meet - a tool to schedule a meeting")
+opts =
+  info
+    (parseArgs <**> helper <**> simpleVersioner ("meet version " ++ showVersion version))
+    (fullDesc <> progDesc "Schedule a meeting with the given emails." <> header ("meet - a tool to schedule a meeting"))
 
 getArgs :: IO Args
 getArgs = execParser opts

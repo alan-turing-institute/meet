@@ -1,8 +1,10 @@
-module Print (prettyPrint, infoPrint, prettyThrow, prettyWarn) where
+module Meet.Print (prettyPrint, infoPrint, prettyThrow, prettyWarn) where
 
 import Control.Monad (forM_)
 import Data.List (nub, sort, transpose)
 import Data.List.Extra (groupOn)
+import Data.List.NonEmpty (NonEmpty)
+import qualified Data.List.NonEmpty as NE
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
@@ -16,8 +18,9 @@ import Data.Time.LocalTime
     utcToZonedTime,
     zonedTimeToUTC,
   )
-import Entities (Room (..))
-import Meetings (Meeting (..))
+import Data.Word (Word8)
+import Meet.Entities (Room (..))
+import Meet.Meetings (Meeting (..))
 import System.Console.ANSI
 import System.Exit (exitFailure)
 import System.IO (stderr)
@@ -72,8 +75,8 @@ padWithStyles sgrs n t =
   let dw = T.length t
    in styleText sgrs $ t <> T.replicate (n - dw) " "
 
-prettyPrint :: TimeZone -> [Meeting] -> IO ()
-prettyPrint tz ms = do
+prettyPrint :: Maybe (NonEmpty Word8) -> TimeZone -> [Meeting] -> IO ()
+prettyPrint colors tz ms = do
   let colSepChar = "│"
       rowSepChar = "─"
       doubleRowSepChar = "═"
@@ -141,13 +144,18 @@ prettyPrint tz ms = do
       (g : gs) -> do
         -- Horizontal line
         T.putStrLn $ if i == 0 then doubleMiddleSepRow else middleSepRow
-        -- Header row: date is in bold, the rest in green 35
-        printRow
-          ([SetConsoleIntensity BoldIntensity] : repeat [SetPaletteColor Foreground 35])
-          (makeMeetingRow g)
-        -- Remaining rows: alternate between purple 128 and green 35
-        let styles = cycle [repeat [SetPaletteColor Foreground 128], repeat [SetPaletteColor Foreground 35]]
-        mapM_ (uncurry printRowNoFirst) (zip styles (map makeMeetingRow gs))
+        -- Header row: date is in bold, the rest in the first colour
+        let firstRowStyles = case colors of
+              Just cs -> [SetConsoleIntensity BoldIntensity] : repeat [SetPaletteColor Foreground (NE.head cs)]
+              Nothing -> [SetConsoleIntensity BoldIntensity] : repeat []
+        printRow firstRowStyles (makeMeetingRow g)
+        -- Remaining rows: alternate between the remaining colours
+        let remainingRowStyles = case colors of
+              Just cs ->
+                let shiftedColors = NE.tail cs ++ [NE.head cs]
+                 in cycle $ map (\c -> repeat [SetPaletteColor Foreground c]) shiftedColors
+              Nothing -> repeat (repeat [])
+        mapM_ (uncurry printRowNoFirst) (zip remainingRowStyles (map makeMeetingRow gs))
   T.putStrLn bottomSepRow
 
 infoPrint :: TimeZone -> Meeting -> Int -> IO ()
