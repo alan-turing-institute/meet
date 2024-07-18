@@ -58,7 +58,7 @@ main = do
   let displayTzText = T.pack $ "UTC" <> timeZoneOffsetString displayTz
 
   case goodMeetings of
-    [] -> T.putStrLn "No meetings were available. :("
+    [] -> T.putStrLn "No rooms were available. :("
     _ -> do
       prettyPrint (argsColors args) displayTz goodMeetings
       T.putStrLn $ "All times are in " <> displayTzText <> "."
