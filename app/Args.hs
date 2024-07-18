@@ -4,9 +4,11 @@ import Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Text as T
 import Data.Time.Calendar (Day)
+import Data.Version (showVersion)
 import Data.Word (Word8)
 import Entities (Days (..), Minutes (..), Person (..))
 import Options.Applicative
+import PackageInfo_meet (name, version)
 import Text.Read (readMaybe)
 
 data Args = Args
@@ -18,8 +20,7 @@ data Args = Args
     argsInPerson :: Int,
     argsFeelingLucky :: Bool,
     argsShowLocalTime :: Bool,
-    argsColors :: Maybe (NonEmpty Word8),
-    argsShowVersion :: Bool
+    argsColors :: Maybe (NonEmpty Word8)
   }
   deriving (Eq, Show)
 
@@ -85,10 +86,6 @@ parseArgs =
           <> help "Colours to be used for output table formatting. Colours here refer to 256-colour terminal colours, and are specified as a comma-separated list of integers between 0 and 255 (inclusive). Pass a value of 'none' to remove colours. Defaults to '35,128', which is green and purple."
           <> value (Just $ NE.fromList [35, 128])
       )
-    <*> switch
-      ( long "version"
-          <> help "Display version number and exit."
-      )
 
 readDate :: ReadM Day
 readDate = do
@@ -114,7 +111,10 @@ readColors = do
     _ -> Just $ NE.fromList $ map (read . T.unpack) $ T.splitOn "," val
 
 opts :: ParserInfo Args
-opts = info (parseArgs <**> helper) (fullDesc <> progDesc "Schedule a meeting with the given emails." <> header "meet - a tool to schedule a meeting")
+opts =
+  info
+    (parseArgs <**> helper <**> simpleVersioner (name ++ " version " ++ showVersion version))
+    (fullDesc <> progDesc "Schedule a meeting with the given emails." <> header (name ++ " - a tool to schedule a meeting"))
 
 getArgs :: IO Args
 getArgs = execParser opts
