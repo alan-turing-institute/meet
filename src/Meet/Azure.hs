@@ -67,12 +67,35 @@ deserialiseToken = do
     then pure Nothing
     else do
       now <- getCurrentTime
-      maybeToken <- getTokenJsonFilePath >>= decodeFileStrict
-      case maybeToken of
-        Just token
-          -- TODO: Can retrieve a new token if the current one is expired
-          | expiresAt token > now -> pure $ Just token
-        _ -> pure Nothing
+      getTokenJsonFilePath >>= decodeFileStrict
+
+getTokenFromRefreshToken :: Token -> IO (Maybe Token)
+getTokenFromRefreshToken token = do
+  let httpConfigNoThrow = defaultHttpConfig {httpConfigCheckResponse = \_ _ _ -> Nothing}
+  resp <- runReq httpConfigNoThrow $ do
+    let tokenUrl = https "login.microsoftonline.com" /: rumTenantId /: "oauth2" /: "v2.0" /: "token"
+    let body =
+          "grant_type" =: ("refresh_token" :: Text)
+            <> "scope" =: scope
+            <> "client_id" =: rumClientId
+            <> "refresh_token" =: refreshToken token
+    req POST tokenUrl (ReqBodyUrlEnc body) jsonResponse mempty
+  now <- getCurrentTime
+  let parser :: Value -> Parser (Either Text Token)
+      parser = withObject "TokenRefreshResponse" $ \o -> do
+        accessTokenText <- o .:? "access_token"
+        refreshTokenText <- o .:? "refresh_token"
+        expiresIn :: Maybe Int <- o .:? "expires_in" -- Seconds
+        errorText <- o .:? "error"
+        pure $ case (accessTokenText, refreshTokenText, expiresIn, errorText) of
+          (Just at, Just rt, Just ei, _) ->
+            -- Take off a minute to be safe
+            let expiresAt = addUTCTime (fromIntegral ei - 60) now
+             in Right $ Token at rt expiresAt
+          (_, _, _, Just err) -> Left err
+  pure $ case parseEither parser (responseBody resp) of
+    Right (Right token) -> Just token
+    _ -> Nothing
 
 withToken :: Token -> Option 'Https
 withToken token = oAuth2Bearer (TE.encodeUtf8 $ accessToken token)
@@ -82,6 +105,9 @@ rumClientId = "a462354f-fd23-4fdf-94f5-5cce5a6c27c7"
 
 rumTenantId :: Text
 rumTenantId = "4395f4a7-e455-4f95-8a9f-1fbaef6384f9"
+
+scope :: Text
+scope = "user.read calendars.read.shared offline_access"
 
 data DeviceCodeError
   = AuthorisationDeclined
@@ -158,7 +184,7 @@ getTokenFromCode :: IO Token
 getTokenFromCode = do
   respJson <- runReq defaultHttpConfig $ do
     let url = https "login.microsoftonline.com" /: rumTenantId /: "oauth2" /: "v2.0" /: "devicecode"
-    req POST url (ReqBodyUrlEnc ("client_id" =: rumClientId <> "scope" =: ("user.read calendars.read.shared offline_access" :: Text))) jsonResponse mempty
+    req POST url (ReqBodyUrlEnc ("client_id" =: rumClientId <> "scope" =: scope)) jsonResponse mempty
 
   let resp = parseDeviceCodeResponse (responseBody respJson)
   case resp of
@@ -177,13 +203,31 @@ getTokenFromCode = do
 
 getToken :: IO Token
 getToken = do
-  maybeToken <- deserialiseToken
-  case maybeToken of
-    Just token -> pure token
+  tokenFromFile <- deserialiseToken
+  case tokenFromFile of
     Nothing -> do
+      T.putStrLn "No cached token found. Getting new token..."
       newToken <- getTokenFromCode
       serialiseToken newToken
       pure newToken
+    Just token -> do
+      now <- getCurrentTime
+      if expiresAt token > now
+        then do
+          T.putStrLn "Cached token is still valid, reusing..."
+          pure token
+        else do
+          T.putStrLn "Cached token has expired. Refreshing..."
+          refreshedToken <- getTokenFromRefreshToken token
+          case refreshedToken of
+            Just t' -> do
+              serialiseToken t'
+              pure t'
+            Nothing -> do
+              T.putStrLn "Failed to refresh cached token. Getting new token..."
+              tokenFromCode <- getTokenFromCode
+              serialiseToken tokenFromCode
+              pure tokenFromCode
 
 data DateTimeTimeZone = DateTimeTimeZone
   { dateTime :: Text,
