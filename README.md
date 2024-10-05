@@ -1,22 +1,10 @@
 # Meet people around the Turing
 
-## Installation
+## Installation (macOS)
 
 ```shell
 brew tap alan-turing-institute/hut23
 brew install alan-turing-institute/hut23/meet
-```
-
-## From source?
-
-[Install `ghcup`](https://www.haskell.org/ghcup/), then use it to install GHC 9.4 and Cabal 3.8.
-(Other GHC/Cabal version combinations that are known to work are 9.6/3.8 and 9.8/3.10.
-You can also check the version combinations we test [in GitHub Actions](https://github.com/alan-turing-institute/meet/blob/main/.github/workflows/build.yml).)
-
-```
-git clone git@github.com:alan-turing-institute/meet.git
-cd meet
-cabal install
 ```
 
 ## Usage
@@ -35,7 +23,38 @@ You can use the `-h` flag to get help on how to use each of these executables an
   List meeting room availability on Christmas Day.
 
 
-### Developer notes: updating Homebrew tap
+--------
+
+## Developer notes
+
+### Compiling from source
+
+[Install `ghcup`](https://www.haskell.org/ghcup/), then use it to install GHC 9.4 and Cabal 3.8.
+(Other GHC/Cabal version combinations that are known to work are 9.6/3.8 and 9.8/3.10.
+You can also check the version combinations we test [in GitHub Actions](https://github.com/alan-turing-institute/meet/blob/main/.github/workflows/build.yml).)
+
+Then run:
+
+```
+git clone git@github.com:alan-turing-institute/meet.git
+cd meet
+cabal update
+cabal build
+```
+
+If it builds successfully, you can then run e.g.
+
+```
+cabal run meet -- aturing jdoe -s 2024-12-25 -d 30
+```
+
+or 
+
+```
+cabal run meet-rooms -- -s 2024-12-25
+```
+
+### Updating the Homebrew tap
 
 1. Increment version number in `meet.cabal`. Commit to the main branch. (There isn't a hard and fast rule for whether to bump the major/minor/patch versions, use your judgment as to whether something is breaking.)
 2. Run `git tag -a v0.x.y.z` then `git push --tags`
