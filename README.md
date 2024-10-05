@@ -26,9 +26,13 @@ The former is used to find a meeting time for a group of people (and associated 
 
 You can use the `-h` flag to get help on how to use each of these executables and view the complete options, but basic usage looks something like:
 
-`meet aturing jdoe -s 2024-01-01 -d 30` — find a time for `aturing` and `jdoe` to meet on New Year's Day for half an hour
+- `meet aturing jdoe -s 2024-12-25 -d 30`
 
-`meet-rooms -s 2024-01-01` — list meeting room availability on New Year's Day
+  Find a time for `aturing@turing.ac.uk` and `jdoe@turing.ac.uk` to meet on Christmas Day for half an hour.
+
+- `meet-rooms -s 2024-12-25`
+
+  List meeting room availability on Christmas Day.
 
 
 ### Developer notes: updating Homebrew tap
