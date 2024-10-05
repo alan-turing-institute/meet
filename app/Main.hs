@@ -1,5 +1,3 @@
-{-# LANGUAGE TypeApplications #-}
-
 module Main where
 
 import Args (Args (..), getArgs)
@@ -15,15 +13,16 @@ import Data.Time.LocalTime
     localTimeToUTC,
     timeZoneOffsetString,
   )
-import Meet.Azure (fetchSchedules, getToken)
-import Meet.Entities (Days (..), Room (..), allRooms)
+import Meet.Azure (fetchSchedules)
+import Meet.Entities (Days (..), Minutes (..), Room (..), allRooms)
 import Meet.Meetings (chooseBestMeeting, getMeetings)
-import Meet.Print (infoPrint, prettyPrint)
+import Meet.Print (infoPrint, prettyPrint, prettyThrow, prettyWarn)
 import Meet.Utils
 import System.Exit (exitSuccess)
 
 main :: IO ()
 main = do
+  -- Parse arguments
   args <- getArgs
   let ppl = argsEmails args
       intervalMinutes = argsInterval args
@@ -38,26 +37,28 @@ main = do
     Just d -> pure d
     Nothing -> localDay <$> getCurrentLondonTime
 
-  -- Only count meetings between 8:30 and 17:30 in London
+  -- Only consider meetings between 8:30 and 17:30 in London
   londonTz <- getCurrentLondonTZ
   let startTime' = localTimeToUTC londonTz $ LocalTime startDate' (TimeOfDay 8 30 0)
   let endDate' = addDays (fromIntegral $ unDays searchSpanDays - 1) startDate'
       endTime' = localTimeToUTC londonTz $ LocalTime endDate' (TimeOfDay 17 30 0)
 
+  -- Find the rooms which can accommodate the number of in-person attendees
   let okRooms = filter ((>= inPerson) . capacity) allRooms
   when (null okRooms) $ do
     T.putStrLn "No rooms that meet your criteria were available. :("
     T.putStrLn "Perhaps try reducing the number of people who need to be in-person?"
     exitSuccess
 
-  token <- getToken
-  (personSchs, roomSchs) <- fetchSchedules token ppl okRooms startTime' endTime' intervalMinutes
+  -- Calculate suitable meeting times
+  (personSchs, roomSchs) <- fetchSchedules ppl okRooms startTime' endTime' intervalMinutes
   let goodMeetings = getMeetings personSchs roomSchs inPerson nChunks startTime' intervalMinutes londonTz
 
-  -- Display times in London unless otherwise specified
+  -- Determine time zone for output (London unless otherwise specified)
   displayTz <- if argsShowLocalTime args then getCurrentTimeZone else pure londonTz
   let displayTzText = T.pack $ "UTC" <> timeZoneOffsetString displayTz
 
+  -- Print the results
   case NE.nonEmpty goodMeetings of
     Nothing -> T.putStrLn "No meetings were available. :("
     Just ms -> do
@@ -65,3 +66,35 @@ main = do
         then infoPrint displayTz (chooseBestMeeting ms) inPerson
         else prettyPrint (argsColors args) displayTz goodMeetings
       T.putStrLn $ "All times are in " <> displayTzText <> "."
+
+-- | `gracefulDivide duration interval` calculates the number of time intervals
+-- that fit into the meeting duration.
+--
+-- If the result is 0, it throws an error. If the result is not an integer, it
+-- truncates the duration to the nearest multiple of the interval and warns the
+-- user. Otherwise, it returns the number of intervals.
+gracefulDivide :: Minutes -> Minutes -> IO Int
+gracefulDivide (Minutes duration) (Minutes interval) = do
+  case quotRem duration interval of
+    (0, _) ->
+      prettyThrow $
+        T.concat
+          [ "Meeting duration of ",
+            tshow duration,
+            " minutes is shorter than the meeting interval of ",
+            tshow interval,
+            " minutes."
+          ]
+    (q, 0) -> pure q
+    (q, _) -> do
+      prettyWarn $
+        T.concat
+          [ "Meeting duration of ",
+            tshow duration,
+            " minutes is not a multiple of the meeting interval of ",
+            tshow interval,
+            " minutes. Proceeding with a ",
+            tshow (q * interval),
+            "-minute meeting instead."
+          ]
+      pure q

@@ -1,7 +1,7 @@
 module Meet.Entities
   ( Availability (..),
     Schedule (..),
-    HasSchedule,
+    HasSchedule (..),
     Person (..),
     Room (..),
     Minutes (..),
@@ -34,11 +34,14 @@ data Room = Room
   }
   deriving (Eq, Ord, Show)
 
-class HasSchedule a
+class HasSchedule a where
+  getEmail :: a -> Text
 
-instance HasSchedule Person
+instance HasSchedule Person where
+  getEmail = personEmail
 
-instance HasSchedule Room
+instance HasSchedule Room where
+  getEmail = roomEmail
 
 data (HasSchedule a) => Schedule a = Schedule
   { entity :: a,

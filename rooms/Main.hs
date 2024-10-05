@@ -1,5 +1,3 @@
-{-# LANGUAGE TypeApplications #-}
-
 module Main where
 
 import Args (Args (..), getArgs)
@@ -8,7 +6,7 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Data.Time.Calendar (addDays)
 import Data.Time.LocalTime (LocalTime (..), TimeOfDay (..), getCurrentTimeZone, localTimeToUTC, timeZoneOffsetString)
-import Meet.Azure (fetchSchedules, getToken)
+import Meet.Azure (fetchSchedules)
 import Meet.Entities (Days (..), Minutes (..), Room (..), allRooms, schedule)
 import Meet.Meetings (getRoomMeetings)
 import Meet.Print (prettyPrint)
@@ -40,8 +38,7 @@ main = do
     T.putStrLn "Perhaps try reducing the number of people who need to be in-person?"
     exitSuccess
 
-  token <- getToken
-  (_, roomSchs) <- fetchSchedules token [] okRooms startTime' endTime' (Minutes 30)
+  (_, roomSchs) <- fetchSchedules [] okRooms startTime' endTime' (Minutes 30)
   let totalChunks = case roomSchs of
         [] -> 0
         s : _ -> length (schedule s)

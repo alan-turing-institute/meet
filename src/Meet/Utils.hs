@@ -8,8 +8,6 @@ import Data.Time.Clock (getCurrentTime)
 import Data.Time.LocalTime (LocalTime (..), TimeZone (..), getCurrentTimeZone, utcToLocalTime)
 import Data.Time.Zones (TZ, timeZoneForUTCTime, utcToLocalTimeTZ)
 import Data.Time.Zones.Read (olsonGet)
-import Meet.Entities (Minutes (..))
-import Meet.Print (prettyThrow, prettyWarn)
 
 tshow :: (Show a) => a -> Text
 tshow = T.pack . show
@@ -28,32 +26,6 @@ getCurrentLocalTime = do
   now <- getCurrentTime
   tz <- getCurrentTimeZone
   pure $ utcToLocalTime tz now
-
-gracefulDivide :: Minutes -> Minutes -> IO Int
-gracefulDivide (Minutes numerator) (Minutes denominator) = do
-  case quotRem numerator denominator of
-    (0, _) ->
-      prettyThrow $
-        T.concat
-          [ "Meeting duration of ",
-            tshow numerator,
-            " minutes is shorter than the meeting interval of ",
-            tshow denominator,
-            " minutes."
-          ]
-    (q, 0) -> pure q
-    (q, _) -> do
-      prettyWarn $
-        T.concat
-          [ "Meeting duration of ",
-            tshow numerator,
-            " minutes is not a multiple of the meeting interval of ",
-            tshow denominator,
-            " minutes. Proceeding with a ",
-            tshow (q * denominator),
-            "-minute meeting instead."
-          ]
-      pure q
 
 -- London time zone info.
 londonTZ :: TZ
