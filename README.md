@@ -1,6 +1,6 @@
 # Meet people around the Turing
 
-<p align="center"><img src="https://private-user-images.githubusercontent.com/122629585/373836371-7c4c79dd-e5d5-43b3-913a-b376fdbfa4db.gif?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3MjgwOTM2OTQsIm5iZiI6MTcyODA5MzM5NCwicGF0aCI6Ii8xMjI2Mjk1ODUvMzczODM2MzcxLTdjNGM3OWRkLWU1ZDUtNDNiMy05MTNhLWIzNzZmZGJmYTRkYi5naWY_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjQxMDA1JTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI0MTAwNVQwMTU2MzRaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1hNGUzOTE0ODIyYWMyNjc0YjJhN2E5NDk1OTRkNmVkNTlmYjAwYWQwOTI5MTQ1Y2NkYzYyMTFiMWI1ZTQxYWYxJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCJ9.PeeoTkHU4lLVpuGvAGMnj0ZPN_BQTKfcQ70pno94ctc" alt="Demo usage of meet" width="600" /></p>
+<p align="center"><img src="https://raw.githubusercontent.com/alan-turing-institute/meet/refs/heads/gif/asciinema.gif" alt="Demo usage of meet" width="600" /></p>
 
 ## Installation (macOS)
 
