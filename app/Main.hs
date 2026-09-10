@@ -60,7 +60,10 @@ main = do
 
   -- Print the results
   case NE.nonEmpty goodMeetings of
-    Nothing -> T.putStrLn "No meetings were available. :("
+    Nothing -> do
+      T.putStrLn "No meetings were available. :("
+      T.putStrLn "Try rerunning with a shorter --duration or a longer --timespan."
+      T.putStrLn "Tentative events count as unavailable; free any flexible tentative slots before rerunning."
     Just ms -> do
       if argsFeelingLucky args
         then infoPrint displayTz (chooseBestMeeting ms) inPerson
