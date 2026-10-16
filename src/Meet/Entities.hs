@@ -64,10 +64,11 @@ allRooms =
     Room FirstFloor 7 "maejemison@turing.ac.uk" "MJe",
     Room FirstFloor 7 "cipher@turing.ac.uk" "Cip",
     Room FirstFloor 8 "davidblackwell@turing.ac.uk" "DBl",
-    Room FirstFloor 8 "jackgood@turing.ac.uk" "JGo",
-    Room SecondFloor 12 "maryshelley@turing.ac.uk" "MSh",
-    Room SecondFloor 4 "isaacasimov@turing.ac.uk" "IAs",
-    Room SecondFloor 4 "helensharman@turing.ac.uk" "HSh"
+    Room FirstFloor 8 "jackgood@turing.ac.uk" "JGo"
+    -- Second floor is no longer availble.
+    -- Room SecondFloor 12 "maryshelley@turing.ac.uk" "MSh",
+    -- Room SecondFloor 4 "isaacasimov@turing.ac.uk" "IAs",
+    -- Room SecondFloor 4 "helensharman@turing.ac.uk" "HSh"
     -- Fourth floor is out of use currently.
     -- Room FourthFloor 4 "ace@turing.ac.uk" "Ace",
     -- Room FourthFloor 4 "banburismus@turing.ac.uk" "Ban",
