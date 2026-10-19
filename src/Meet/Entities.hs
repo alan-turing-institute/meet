@@ -65,7 +65,7 @@ allRooms =
     Room FirstFloor 7 "cipher@turing.ac.uk" "Cip",
     Room FirstFloor 8 "davidblackwell@turing.ac.uk" "DBl",
     Room FirstFloor 8 "jackgood@turing.ac.uk" "JGo"
-    -- Second floor is no longer availble.
+    -- Second floor is no longer available.
     -- Room SecondFloor 12 "maryshelley@turing.ac.uk" "MSh",
     -- Room SecondFloor 4 "isaacasimov@turing.ac.uk" "IAs",
     -- Room SecondFloor 4 "helensharman@turing.ac.uk" "HSh"
