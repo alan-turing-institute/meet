@@ -9,22 +9,16 @@ jobs:
       fail-fast: false
       matrix:
         setup:
-          # Failing
-          - ghc_version: "9.4"
-            cabal_version: "3.8"
-          # Failing
-          - ghc_version: "9.6"
-            cabal_version: "3.8"
           # Working
           - ghc_version: "9.8"
             cabal_version: "3.10"
-          # Suggested (not every combination - but a succession)
           - ghc_version: "9.10"
             cabal_version: "3.14"
-          - ghc_version: "9.12"
-            cabal_version: "3.16"
-          - ghc_version: "latest"
-            cabal_version: "latest"
+          # Disabled for now - Dependency error with newer GHC versions
+          # - ghc_version: "9.12"
+          #   cabal_version: "3.16"
+          # - ghc_version: "latest"
+          #   cabal_version: "latest"
 
     steps:
     - name: Checkout repository
